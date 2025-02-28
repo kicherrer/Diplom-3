@@ -1,0 +1,303 @@
+{
+  "navigation": {
+    "home": "Главная",
+    "discover": "Обзор",
+    "profile": "Профиль",
+    "achievements": "Достижения",
+    "admin": "Админ"
+  },
+  "home": {
+    "title": "Ваша Медиатека",
+    "subtitle": "Отслеживайте и открывайте для себя фильмы и сериалы",
+    "startExploring": "Начать Просмотр",
+    "startWatching": "Начать смотреть",
+    "notStarted": "Еще не начали смотреть?",
+    "notStartedWatching": "Ещё не начали смотреть?",
+    "features": {
+      "catalog": {
+        "title": "Каталог",
+        "description": "Исследуйте нашу обширную коллекцию фильмов и сериалов"
+      },
+      "recommendations": {
+        "title": "Рекомендации",
+        "description": "Получайте персональные рекомендации контента"
+      },
+      "profiles": {
+        "title": "Личный Профиль",
+        "description": "Отслеживайте историю просмотров и избранное"
+      },
+      "ratings": {
+        "title": "Оценки и Отзывы",
+        "description": "Делитесь мнением и читайте отзывы других"
+      }
+    },
+    "discoverTitle": "Категории",
+    "discover": {
+      "title": "Откройте для себя",
+      "description": "Найдите новые фильмы и сериалы"
+    },
+    "movies": "Фильмы",
+    "moviesDescription": "От классики до новинок",
+    "browseMovies": "Смотреть Фильмы",
+    "tvShows": "Сериалы",
+    "tvShowsDescription": "Лучшие сериалы со всего мира",
+    "browseTVShows": "Смотреть Сериалы",
+    "documentaries": "Документальные",
+    "documentariesDescription": "Откройте для себя увлекательные истории",
+    "browseDocumentaries": "Смотреть Документальные",
+    "trackProgress": "Отслеживание Прогресса",
+    "trackProgressDescription": "Следите за просмотренным и получайте достижения",
+    "viewAchievements": "Посмотреть Достижения",
+    "trackMovies": "Отслеживание Фильмов",
+    "getRecommendations": "Рекомендации",
+    "rateContent": "Оценка Контента",
+    "earnAchievements": "Получить Достижения"
+  },
+  "profile": {
+    "title": "Профиль",
+    "activityTitle": "Активность",
+    "achievements": "Достижения",
+    "userStats": "Статистика",
+    "edit": "Редактировать",
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "editProfile": "Редактировать профиль",
+    "memberSince": "Участник с {{date}}",
+    "memberSinceText": "Участник с",
+    "settings": {
+      "title": "Настройки",
+      "basic": "Основная информация",
+      "customization": "Персонализация",
+      "social": "Социальные сети",
+      "privacy": "Приватность"
+    },
+    "form": {
+      "username": "Имя пользователя",
+      "usernamePlaceholder": "Введите имя пользователя",
+      "usernameDescription": "Ваше уникальное имя",
+      "displayName": "Отображаемое имя",
+      "displayNamePlaceholder": "Как вас будут видеть другие",
+      "displayNameDescription": "Имя, которое видят другие пользователи",
+      "bio": "О себе",
+      "bioPlaceholder": "Расскажите о себе",
+      "themes": "Тема оформления",
+      "themePlaceholder": "Выберите тему"
+    },
+    "themes": {
+      "default": "По умолчанию",
+      "dark": "Тёмная",
+      "neon": "Неон",
+      "minimal": "Минимализм",
+      "retro": "Ретро",
+      "nature": "Природа",
+      "space": "Космос"
+    },
+    "animations": {
+      "title": "Анимации",
+      "none": "Без анимации",
+      "subtle": "Лёгкие",
+      "moderate": "Средние",
+      "intense": "Интенсивные"
+    },
+    "features": {
+      "gifAvatar": "GIF-аватар",
+      "gifAvatarDescription": "Разрешить анимированный аватар",
+      "gifBanner": "GIF-баннер",
+      "gifBannerDescription": "Разрешить анимированный баннер"
+    },
+    "privacy": {
+      "publicProfile": "Публичный профиль",
+      "publicProfileDescription": "Разрешить другим видеть ваш профиль",
+      "showActivity": "Показывать активность",
+      "showActivityDescription": "Показывать вашу активность другим",
+      "showStats": "Показывать статистику",
+      "showStatsDescription": "Показывать вашу статистику другим"
+    },
+    "stats": {
+      "watchedMovies": "Просмотрено фильмов",
+      "watchedShows": "Просмотрено сериалов",
+      "totalRatings": "Всего оценок",
+      "points": "очков",
+      "title": "Статистика"
+    },
+    "activity": {
+      "recent": "Недавняя активность",
+      "watched": "посмотрел(а)",
+      "rated": "оценил(а)",
+      "reviewed": "оставил(а) отзыв",
+      "daysAgo": "дней назад",
+      "weekAgo": "неделю назад",
+      "gaveIt": "поставил(а)",
+      "stars": "звезд",
+      "addedToWatchedList": "добавлено в просмотренное",
+      "addedAReview": "добавлен отзыв"
+    },
+    "actions": {
+      "changeBanner": "Изменить баннер",
+      "changeAvatar": "Изменить аватар",
+      "uploading": "Загрузка...",
+      "resetDefaults": "Сбросить настройки",
+      "edit": "Редактировать",
+      "save": "Сохранить",
+      "upload": "Загрузить"
+    },
+    "tabs": {
+      "activity": "Активность",
+      "achievements": "Достижения",
+      "stats": "Статистика",
+      "settings": "Настройки"
+    },
+    "sections": {
+      "basic": "Основная информация",
+      "customization": "Оформление",
+      "social": "Социальные сети",
+      "privacy": "Приватность"
+    },
+    "customization": {
+      "themes": "Темы",
+      "animations": "Анимации"
+    },
+    "messages": {
+      "saveSuccess": "Профиль успешно сохранен",
+      "saveError": "Ошибка при сохранении профиля",
+      "avatarError": "Ошибка при загрузке аватара",
+      "bannerError": "Ошибка при загрузке баннера",
+      "avatarUpdated": "Аватар успешно обновлен",
+      "bannerUpdated": "Баннер успешно обновлен"
+    }
+  },
+  "achievements": {
+    "title": "Достижения",
+    "total": "Всего достижений",
+    "unlocked": "Разблокировано",
+    "locked": "Заблокировано",
+    "progress": "Прогресс",
+    "points": "очков",
+    "earnedOn": "Получено",
+    "all": "Все",
+    "trackProgress": "Отслеживайте свой прогресс и получайте награды",
+    "noAchievements": "У вас пока нет разблокированных достижений",
+    "keepUsing": "Продолжайте использовать MediaVault, чтобы получать достижения и награды",
+    "allUnlocked": "Все достижения разблокированы!",
+    "congratulations": "Поздравляем! Вы разблокировали все доступные достижения.",
+    "tabs": {
+      "all": "Все",
+      "unlocked": "Разблокированные",
+      "locked": "Заблокированные"
+    },
+    "empty": {
+      "unlocked": "Нет разблокированных достижений",
+      "locked": "Нет заблокированных достижений",
+      "description": "Продолжайте использовать приложение, чтобы получать достижения"
+    },
+    "status": {
+      "unlocked": "разблокировано",
+      "total": "всего"
+    }
+  },
+  "admin": {
+    "title": "Панель администратора",
+    "users": {
+      "title": "Пользователи",
+      "makeAdmin": "Сделать админом",
+      "removeAdmin": "Удалить админа",
+      "lastActive": "Последняя активность"
+    },
+    "media": {
+      "title": "Медиа контент",
+      "edit": "Редактировать",
+      "add": "Добавить",
+      "delete": "Удалить",
+      "type": "Тип",
+      "status": "Статус"
+    },
+    "stats": {
+      "title": "Статистика",
+      "totalUsers": "Всего пользователей",
+      "totalMedia": "Всего медиа",
+      "adminUsers": "Администраторы",
+      "activeToday": "Активны сегодня",
+      "newThisWeek": "Новые за неделю"
+    }
+  },
+  "loading": "Загрузка...",
+  "errors": {
+    "fetchFailed": "Не удалось загрузить данные",
+    "updateFailed": "Не удалось обновить",
+    "accessDenied": "Доступ запрещен"
+  },
+  "actions": {
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "edit": "Редактировать",
+    "delete": "Удалить",
+    "confirm": "Подтвердить"
+  },
+  "ui": {
+    "loading": "Загрузка...",
+    "error": "Произошла ошибка",
+    "retry": "Повторить",
+    "empty": "Нет данных",
+    "search": "Поиск",
+    "filter": "Фильтры",
+    "sort": "Сортировка",
+    "apply": "Применить",
+    "clear": "Очистить",
+    "more": "Ещё",
+    "less": "Свернуть"
+  },
+  "discover": {
+    "search": "Поиск",
+    "filters": "Фильтры",
+    "searchPlaceholder": "Поиск фильмов и сериалов...",
+    "filter": {
+      "title": "Фильтры",
+      "category": "Категория",
+      "genre": "Жанр",
+      "year": "Год",
+      "rating": "Рейтинг",
+      "apply": "Применить",
+      "clear": "Очистить",
+      "searchLabel": "Поиск",
+      "movies": "Фильмы",
+      "tvShows": "Сериалы",
+      "all": "Все"
+    }
+  },
+  "auth": {
+    "signIn": "Войти",
+    "signUp": "Зарегистрироваться",
+    "signOut": "Выйти",
+    "welcomeBack": "С возвращением!",
+    "welcomeMessage": "Добро пожаловать в MediaVault",
+    "appTitle": "MediaVault - Ваша Медиатека",
+    "continueMessage": "Войдите в свой аккаунт, чтобы продолжить",
+    "getStartedMessage": "Создайте новый аккаунт, чтобы начать",
+    "forgotPassword": "Забыли пароль?",
+    "joinUs": "Присоединяйтесь к нам",
+    "passwordRequirements": "Пароль должен содержать минимум 8 символов",
+    "createAccount": "Создать аккаунт",
+    "confirmPassword": "Подтвердите пароль",
+    "confirmPasswordLabel": "Подтвердите пароль",
+    "confirmPasswordPlaceholder": "Повторите пароль",
+    "email": "Email",
+    "password": "Пароль",
+    "orContinueWith": "или продолжить с помощью",
+    "dontHaveAccount": "Нет аккаунта?",
+    "alreadyHaveAccount": "Уже есть аккаунт?",
+    "register": "Регистрация",
+    "resetPassword": "Сброс пароля",
+    "resetPasswordMessage": "Введите email для сброса пароля",
+    "back": "Назад",
+    "sendResetLink": "Отправить ссылку для сброса",
+    "success": "Успешно!",
+    "signedInSuccess": "Вход выполнен успешно",
+    "authSuccess": "Аутентификация прошла успешно",
+    "redirecting": "Перенаправление на главную страницу..."
+  },
+  "theme": {
+    "light": "Светлая",
+    "dark": "Тёмная",
+    "system": "Системная"
+  }
+}

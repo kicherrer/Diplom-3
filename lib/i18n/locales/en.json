@@ -1,0 +1,73 @@
+{
+  "common": {
+    "navigation": {
+      "home": "Home",
+      "discover": "Discover",
+      "profile": "Profile",
+      "admin": "Admin"
+    },
+    "auth": {
+      "signIn": "Sign In",
+      "signOut": "Sign Out",
+      "signUp": "Sign Up",
+      "email": "Email",
+      "password": "Password",
+      "createAccount": "Create Account"
+    },
+    "home": {
+      "title": "Your Personal Media Library",
+      "subtitle": "Track, discover, and manage your favorite movies, TV shows, and documentaries all in one place",
+      "features": {
+        "catalog": {
+          "title": "Media Catalog",
+          "description": "Browse through our extensive collection of movies and TV shows"
+        },
+        "recommendations": {
+          "title": "Recommendations",
+          "description": "Get personalized suggestions based on your preferences"
+        },
+        "profiles": {
+          "title": "User Profiles",
+          "description": "Create your profile and track your watching history"
+        },
+        "ratings": {
+          "title": "Ratings & Reviews",
+          "description": "Rate and review your favorite content"
+        }
+      },
+      "startExploring": "Start Exploring"
+    }
+  },
+  "admin": {
+    "title": "Admin Dashboard",
+    "tabs": {
+      "users": "Users",
+      "media": "Media",
+      "stats": "Statistics"
+    },
+    "users": {
+      "title": "User Management",
+      "makeAdmin": "Make Admin",
+      "removeAdmin": "Remove Admin"
+    },
+    "media": {
+      "title": "Media Management",
+      "edit": "Edit"
+    },
+    "stats": {
+      "totalUsers": "Total Users",
+      "totalMedia": "Total Media Items",
+      "adminUsers": "Admin Users"
+    },
+    "login": {
+      "title": "Admin Login",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Login",
+      "loading": "Logging in...",
+      "success": "Login successful",
+      "error": "Login failed",
+      "notAdmin": "User is not an admin"
+    }
+  }
+}
