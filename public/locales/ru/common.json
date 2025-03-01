@@ -230,8 +230,10 @@
         "addActor": "Добавить актёра",
         "removeActor": "Удалить актёра",
         "actorName": "Имя актёра",
-        "character": "Роль",
+        "character": "Персонаж",
+        "characterPlaceholder": "Введите имя персонажа",
         "photo": "Фото",
+        "photoPlaceholder": "Выберите фото",
         "directors": "Режиссёры",
         "addDirector": "Добавить режиссёра",
         "removeDirector": "Удалить режиссёра",
@@ -239,7 +241,16 @@
         "submit": "Добавить",
         "submitting": "Добавление...",
         "movie": "Фильм",
-        "tv": "Сериал"
+        "tv": "Сериал",
+        "name": "Имя",
+        "namePlaceholder": "Введите имя",
+        "fileInputLabels": {
+          "browse": "Обзор",
+          "chooseFile": "Выберите файл",
+          "noFileChosen": "Файл не выбран"
+        },
+        "actorNamePlaceholder": "Введите имя актера",
+        "originalTitlePlaceholder": "Введите оригинальное название"
       }
     },
     "stats": {

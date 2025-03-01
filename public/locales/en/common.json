@@ -250,8 +250,23 @@
         "submit": "Add Media",
         "submitting": "Adding...",
         "movie": "Movie",
-        "tv": "TV Show"
+        "tv": "TV Show",
+        "fileInputLabels": {
+          "chooseFile": "Choose file",
+          "noFileChosen": "No file chosen",
+          "browse": "Browse"
+        },
+        "photoPlaceholder": "Choose photo",
+        "name": "Name",
+        "namePlaceholder": "Enter name"
       }
+    },
+    "stats": {
+      "totalUsers": "Total Users",
+      "totalMedia": "Total Media",
+      "adminUsers": "Admin Users",
+      "activeToday": "Active Today",
+      "newThisWeek": "New This Week"
     }
   },
   "loading": "Loading...",

@@ -20,6 +20,7 @@ import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'  // Add this import
+import { FileInput } from '@/components/ui/file-input'
 
 const mediaSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -57,7 +58,7 @@ interface Director {
 }
 
 export function MediaForm() {
-  const { t } = useTranslation('common')  // Add this line
+  const { t, i18n } = useTranslation('common')  // Add this line
   const [loading, setLoading] = useState(false)
   const [genres, setGenres] = useState<any[]>([])
   const router = useRouter()
@@ -228,7 +229,8 @@ export function MediaForm() {
     setDirectors(directors.filter((_, i) => i !== index))
   }
 
-  // Обновляем форму
+  const fileInputClass = "relative block w-full text-sm text-foreground"
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -254,7 +256,10 @@ export function MediaForm() {
             <FormItem>
               <FormLabel>{t('admin.media.form.originalTitle')}</FormLabel>
               <FormControl>
-                <Input {...field} placeholder={t('admin.media.form.originalTitlePlaceholder')} />
+                <Input 
+                  {...field} 
+                  placeholder={t('admin.media.form.originalTitlePlaceholder')} 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -343,12 +348,27 @@ export function MediaForm() {
               <FormItem>
                 <FormLabel>{t('admin.media.form.poster')}</FormLabel>
                 <FormControl>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => onChange(e.target.files)}
-                    className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
-                  />
+                  <div className="relative group cursor-pointer">
+                    <div className="flex items-center gap-2 p-2 rounded-lg border border-input bg-background">
+                      <button
+                        type="button"
+                        className="px-4 py-2 rounded-full text-sm font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                        onClick={() => document.getElementById('poster-input')?.click()}
+                      >
+                        {t('admin.media.form.fileInputLabels.browse')}
+                      </button>
+                      <span className="text-sm text-muted-foreground">
+                        {t('admin.media.form.fileInputLabels.chooseFile')}
+                      </span>
+                    </div>
+                    <input
+                      id="poster-input"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => onChange(e.target.files)}
+                      className="sr-only"
+                    />
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -362,12 +382,27 @@ export function MediaForm() {
               <FormItem>
                 <FormLabel>{t('admin.media.form.video')}</FormLabel>
                 <FormControl>
-                  <Input
-                    type="file"
-                    accept="video/*"
-                    onChange={(e) => onChange(e.target.files)}
-                    className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
-                  />
+                  <div className="relative group cursor-pointer">
+                    <div className="flex items-center gap-2 p-2 rounded-lg border border-input bg-background">
+                      <button
+                        type="button"
+                        className="px-4 py-2 rounded-full text-sm font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                        onClick={() => document.getElementById('video-input')?.click()}
+                      >
+                        {t('admin.media.form.fileInputLabels.browse')}
+                      </button>
+                      <span className="text-sm text-muted-foreground">
+                        {t('admin.media.form.fileInputLabels.chooseFile')}
+                      </span>
+                    </div>
+                    <input
+                      id="video-input"
+                      type="file"
+                      accept="video/*"
+                      onChange={(e) => onChange(e.target.files)}
+                      className="sr-only"
+                    />
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -387,7 +422,10 @@ export function MediaForm() {
                   <FormItem>
                     <FormLabel>{t('admin.media.form.actorName')}</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder={t('admin.media.form.actorNamePlaceholder')} />
+                      <Input 
+                        {...field} 
+                        placeholder={t('admin.media.form.actorNamePlaceholder')} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -399,9 +437,9 @@ export function MediaForm() {
                 name={`actors.${index}.character`}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Character</FormLabel>
+                    <FormLabel>{t('admin.media.form.character')}</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input {...field} placeholder={t('admin.media.form.characterPlaceholder')} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -413,13 +451,29 @@ export function MediaForm() {
                 name={`actors.${index}.photo`}
                 render={({ field: { onChange } }) => (
                   <FormItem className="col-span-2">
-                    <FormLabel>Photo</FormLabel>
+                    <FormLabel>{t('admin.media.form.photo')}</FormLabel>
                     <FormControl>
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => onChange(e.target.files)}
-                      />
+                      <div className="relative group cursor-pointer">
+                        <div className="flex items-center gap-2 p-2 rounded-lg border border-input bg-background">
+                          <button
+                            type="button"
+                            className="px-4 py-2 rounded-full text-sm font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                            onClick={() => document.getElementById('photo-input')?.click()}
+                          >
+                            {t('admin.media.form.fileInputLabels.browse')}
+                          </button>
+                          <span className="text-sm text-muted-foreground">
+                            {t('admin.media.form.fileInputLabels.noFileChosen')}
+                          </span>
+                        </div>
+                        <input
+                          id="photo-input"
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => onChange(e.target.files)}
+                          className="sr-only"
+                        />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -451,9 +505,9 @@ export function MediaForm() {
                 name={`directors.${index}.name`}
                 render={({ field }) => (
                   <FormItem className="col-span-2">
-                    <FormLabel>Name</FormLabel>
+                    <FormLabel>{t('admin.media.form.name')}</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input {...field} placeholder={t('admin.media.form.namePlaceholder')} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -465,13 +519,29 @@ export function MediaForm() {
                 name={`directors.${index}.photo`}
                 render={({ field: { onChange } }) => (
                   <FormItem className="col-span-2">
-                    <FormLabel>Photo</FormLabel>
+                    <FormLabel>{t('admin.media.form.photo')}</FormLabel>
                     <FormControl>
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => onChange(e.target.files)}
-                      />
+                      <div className="relative group cursor-pointer">
+                        <div className="flex items-center gap-2 p-2 rounded-lg border border-input bg-background">
+                          <button
+                            type="button"
+                            className="px-4 py-2 rounded-full text-sm font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                            onClick={() => document.getElementById('photo-input')?.click()}
+                          >
+                            {t('admin.media.form.fileInputLabels.browse')}
+                          </button>
+                          <span className="text-sm text-muted-foreground">
+                            {t('admin.media.form.fileInputLabels.noFileChosen')}
+                          </span>
+                        </div>
+                        <input
+                          id="photo-input"
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => onChange(e.target.files)}
+                          className="sr-only"
+                        />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

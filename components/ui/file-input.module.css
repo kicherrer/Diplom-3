@@ -1,0 +1,23 @@
+.fileInput {
+  position: relative;
+  display: block;
+  width: 100%;
+  font-size: 0.875rem;
+  color: var(--foreground);
+}
+
+.fileInput::file-selector-button {
+  margin-right: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  border: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background-color: hsl(var(--primary) / 0.1);
+  color: hsl(var(--primary));
+  transition: background-color 0.2s;
+}
+
+.fileInput:hover::file-selector-button {
+  background-color: hsl(var(--primary) / 0.2);
+}
