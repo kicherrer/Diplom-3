@@ -1,13 +1,11 @@
 import './globals.css';
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
 import Navigation from '@/components/navigation';
 import { I18nProvider } from '@/components/i18n-provider';
 
-const inter = Inter({ subsets: ['latin'] });
-
+// Remove Inter font import and usage
 export const metadata: Metadata = {
   title: 'MediaVault - Your Personal Media Library',
   description: 'Track, discover, and manage your media content with personalized recommendations',
@@ -20,7 +18,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body>
         <I18nProvider>
           <ThemeProvider
             attribute="class"

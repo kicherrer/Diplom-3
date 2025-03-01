@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
 import { User, MediaItem } from '@/types/admin'
+import { Plus } from "lucide-react"
 
 export default function AdminPage() {
   const { t } = useTranslation('common')
@@ -96,7 +97,17 @@ export default function AdminPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">{t('admin.title')}</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">{t('admin.title')}</h1>
+        <Button 
+          onClick={() => router.push('/admin/add-media')} 
+          className="gap-2"
+          size="lg"
+        >
+          <Plus className="h-5 w-5" />
+          {t('admin.media.add')}
+        </Button>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card>
           <CardHeader>
@@ -123,7 +134,18 @@ export default function AdminPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>{t('admin.media.title')}</CardTitle>
+            <CardTitle className="flex justify-between items-center">
+              {t('admin.media.title')}
+              <Button 
+                onClick={() => router.push('/admin/add-media')} 
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                {t('admin.media.add')}
+              </Button>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
