@@ -129,7 +129,7 @@ export default function AchievementsPage() {
       >
         <h1 className="text-3xl font-bold">{t('achievements.title')}</h1>
         <p className="text-muted-foreground mt-2">
-          Track your progress and earn rewards for your activity
+          {t('achievements.trackProgress')}
         </p>
         
         <div className="mt-6 inline-flex items-center justify-center gap-2 bg-muted/50 px-4 py-2 rounded-full">

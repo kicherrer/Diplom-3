@@ -1,5 +1,5 @@
 {
-  "$schema": "http://json.schemastore.org/package",
+  "$schema": "https://json.schemastore.org/package.json",
   "name": "mediavault",
   "version": "0.1.0",
   "private": true,

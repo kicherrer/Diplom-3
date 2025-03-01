@@ -310,40 +310,28 @@ export default function ProfilePage() {
 
       const file = acceptedFiles[0]
       const fileExt = file.name.split('.').pop()
-      const filePath = `banners/${user.id}-${Date.now()}.${fileExt}`
-
-      console.log('Uploading banner to:', filePath)
-      
-      // Check bucket exists
-      const { data: buckets } = await supabase
-        .storage
-        .listBuckets()
-      
-      console.log('Available buckets:', buckets)
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}`
+      const filePath = `banners/${fileName}.${fileExt}`
 
       // Загружаем файл
       const { error: uploadError, data: uploadData } = await supabase.storage
         .from('media')
         .upload(filePath, file, { 
-          upsert: true,
+          upsert: false, // Изменено с true на false
           contentType: file.type 
         })
 
       if (uploadError) {
-        console.error('Upload error details:', uploadError)
+        console.error('Upload error:', uploadError)
         throw uploadError
       }
 
-      console.log('Upload successful:', uploadData)
-
       // Получаем публичный URL
-      const { data: urlData } = supabase.storage
+      const { data: { publicUrl } } = supabase.storage
         .from('media')
         .getPublicUrl(filePath)
 
-      console.log('Public URL:', urlData)
-
-      if (!urlData?.publicUrl) {
+      if (!publicUrl) {
         throw new Error('Failed to get public URL')
       }
 
@@ -351,7 +339,7 @@ export default function ProfilePage() {
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ 
-          banner_url: urlData.publicUrl,
+          banner_url: publicUrl,
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id)
@@ -361,7 +349,7 @@ export default function ProfilePage() {
       toast.success(t('profile.messages.bannerUpdated'))
       await fetchProfile()
     } catch (error: any) {
-      console.error('Full error object:', error)
+      console.error('Upload error:', error)
       toast.error(error.message || t('profile.messages.bannerError'))
     } finally {
       setUploadingBanner(false)
