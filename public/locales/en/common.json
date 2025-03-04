@@ -298,7 +298,7 @@
   "discover": {
     "search": "Search",
     "filters": "Filters",
-    "searchPlaceholder": "Search movies, TV shows...",
+    "searchPlaceholder": "Search for movies and TV shows...",
     "filter": {
       "title": "Filters",
       "searchLabel": "Search",
@@ -307,8 +307,23 @@
       "year": "Year",
       "rating": "Rating",
       "apply": "Apply",
-      "clear": "Clear"
-    }
+      "clear": "Clear",
+      "minRating": "Minimum Rating",
+      "all": "All",
+      "movies": "Movies",
+      "tvShows": "TV Shows"
+    },
+    "sort": {
+      "rating": "By Rating",
+      "views": "By Views",
+      "newest": "Newest First",
+      "oldest": "Oldest First"
+    },
+    "empty": {
+      "title": "No Results Found",
+      "description": "Try adjusting your search parameters"
+    },
+    "loading": "Loading results..."
   },
   "auth": {
     "signIn": "Sign In",
@@ -345,5 +360,31 @@
     "light": "Light",
     "dark": "Dark",
     "system": "System"
+  },
+  "watch": {
+    "about": "About",
+    "watch": "Watch Now",
+    "castAndCrew": "Cast & Crew",
+    "cast": "Cast",
+    "directors": "Directors",
+    "rating": "Rating",
+    "comments": "Comments",
+    "addComment": "Add a comment...",
+    "submit": "Submit",
+    "points": "points",
+    "noRating": "No rating yet",
+    "rateThis": "Rate this",
+    "login": {
+      "required": "Please log in to rate",
+      "requiredComment": "Please log in to comment"
+    },
+    "success": {
+      "rating": "Rating saved successfully",
+      "comment": "Comment added successfully"
+    },
+    "error": {
+      "rating": "Failed to save rating",
+      "comment": "Failed to add comment"
+    }
   }
 }

@@ -5,10 +5,30 @@ import { Toaster } from '@/components/ui/sonner';
 import Navigation from '@/components/navigation';
 import { I18nProvider } from '@/components/i18n-provider';
 
-// Remove Inter font import and usage
 export const metadata: Metadata = {
-  title: 'MediaVault - Your Personal Media Library',
-  description: 'Track, discover, and manage your media content with personalized recommendations',
+  title: 'MediaVault',
+  description: 'Your Personal Media Library',
+  icons: {
+    icon: [
+      {
+        url: '/icon-192.png',
+        sizes: '192x192',
+        type: 'image/png'
+      },
+      {
+        url: '/icon-512.png',
+        sizes: '512x512',
+        type: 'image/png'
+      }
+    ],
+    apple: [
+      {
+        url: '/icon-192.png',
+        sizes: '192x192',
+        type: 'image/png'
+      }
+    ]
+  }
 };
 
 export default function RootLayout({
