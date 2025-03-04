@@ -87,6 +87,11 @@ export default function AdminPage() {
     }
   }
 
+  const handleEdit = (itemId: string) => {
+    console.log('Editing item:', itemId); // Добавьте для отладки
+    router.push(`/admin/edit-media/${itemId}`);
+  };
+
   if (loading) {
     return <div>{t('loading')}</div>
   }
@@ -155,7 +160,10 @@ export default function AdminPage() {
                     <p className="font-medium">{item.title}</p>
                     <p className="text-sm text-muted-foreground">{item.type}</p>
                   </div>
-                  <Button variant="outline">
+                  <Button 
+                    variant="outline"
+                    onClick={() => handleEdit(item.id)}
+                  >
                     {t('admin.media.edit')}
                   </Button>
                 </div>

@@ -210,14 +210,14 @@ export default function MediaPage() {
             
             {showVideo && (
               <div className="aspect-video w-full mb-6 rounded-lg overflow-hidden">
-                <video 
-                  src={media.video_url} 
-                  controls 
-                  className="w-full h-full"
-                  autoPlay
-                >
-                  Your browser does not support the video tag.
-                </video>
+                <iframe
+                  src={media.video_url}
+                  width="100%"
+                  height="100%"
+                  frameBorder="0"
+                  allowFullScreen
+                  allow="autoplay; encrypted-media"
+                />
               </div>
             )}
             

@@ -1,10 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
   eslint: {
     ignoreDuringBuilds: true,
   },
-  images: { unoptimized: true },
+  images: {
+    domains: ['zhnjccpwicpzhpvbsimx.supabase.co'],
+  },
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
@@ -17,6 +18,7 @@ const nextConfig = {
   },
   reactStrictMode: true,
   swcMinify: true,
+  // Удаляем experimental.serverComponents, так как это теперь включено по умолчанию в Next.js 13+
 };
 
 module.exports = nextConfig;

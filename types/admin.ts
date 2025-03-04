@@ -9,3 +9,19 @@ export interface MediaItem {
   title: string;
   type: string;
 }
+
+export interface Person {
+  id: string;
+  name: string;
+  photo_url?: string;
+  created_at: string;
+}
+
+export interface MediaPerson {
+  id: string;
+  media_id: string;
+  person_id: string;
+  role: 'actor' | 'director';
+  character_name?: string;
+  created_at: string;
+}

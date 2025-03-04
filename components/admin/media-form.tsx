@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -21,6 +21,8 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'  // Add this import
 import { FileInput } from '@/components/ui/file-input'
+import { uploadToBunny } from '@/lib/bunny';
+import Image from 'next/image'
 
 const mediaSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -50,28 +52,37 @@ interface Actor {
   name: string;
   character: string;
   photo: FileList | null;
+  existingPhotoUrl?: string; // Add this property
 }
 
 interface Director {
   name: string;
   photo: FileList | null;
+  existingPhotoUrl?: string; // Add this property
 }
 
-export function MediaForm() {
+interface MediaFormProps {
+  isEditing?: boolean;
+  id?: string;
+}
+
+export function MediaForm({ isEditing, id }: MediaFormProps) {
+  // Add console.log for debugging
+  console.log('MediaForm props:', { isEditing, id })
+
   const { t, i18n } = useTranslation('common')  // Add this line
   const [loading, setLoading] = useState(false)
   const [genres, setGenres] = useState<any[]>([])
   const router = useRouter()
 
-  useEffect(() => {
-    fetchGenres()
-  }, [])
+  // Move state declarations up before they're used
+  const [actors, setActors] = useState<Actor[]>([{ name: '', character: '', photo: null }])
+  const [directors, setDirectors] = useState<Director[]>([{ name: '', photo: null }])
+  const [existingPosterUrl, setExistingPosterUrl] = useState<string | null>(null)
+  const [existingVideoUrl, setExistingVideoUrl] = useState<string | null>(null)
+  const [existingPersonPhotos, setExistingPersonPhotos] = useState<Record<string, string>>({})
 
-  const fetchGenres = async () => {
-    const { data } = await supabase.from('genres').select('*')
-    if (data) setGenres(data)
-  }
-
+  // Перемещаем определение формы перед её использованием
   const form = useForm<MediaFormValues>({
     resolver: zodResolver(mediaSchema),
     defaultValues: {
@@ -87,130 +98,272 @@ export function MediaForm() {
       poster: null,
       video: null
     }
-  })
+  });
+
+  const fetchGenres = useCallback(async () => {
+    const { data } = await supabase
+      .from('genres')
+      .select('id, name, name_ru');
+    if (data) {
+      const processedGenres = data.map(genre => ({
+        ...genre,
+        displayName: i18n.language === 'ru' ? genre.name_ru : genre.name
+      }));
+      setGenres(processedGenres);
+    }
+  }, [i18n.language]);
+
+  useEffect(() => {
+    fetchGenres();
+  }, [fetchGenres]);
+
+  const fetchMediaData = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('media_items')
+        .select(`
+          *,
+          media_genres (
+            genre_id,
+            genres (
+              id,
+              name,
+              name_ru
+            )
+          ),
+          media_persons (
+            persons (
+              id,
+              name,
+              photo_url
+            ),
+            role,
+            character_name
+          )
+        `)
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+
+      console.log('Fetched data:', data); // Для отладки
+
+      // Сохраняем существующие URL
+      setExistingPosterUrl(data.poster_url);
+      setExistingVideoUrl(data.video_url);
+
+      // Обработка жанров - исправляем маппинг
+      const genres = data.media_genres.map((mg: any) => mg.genre_id);
+      console.log('Mapped genres:', genres); // Для отладки
+
+      // Обработка актеров
+      const actors = data.media_persons
+        .filter((mp: any) => mp.role === 'actor')
+        .map((mp: any) => ({
+          name: mp.persons.name,
+          character: mp.character_name,
+          photo: null,
+          existingPhotoUrl: mp.persons.photo_url
+        }));
+      console.log('Mapped actors:', actors); // Для отладки
+
+      // Обработка режиссеров
+      const directors = data.media_persons
+        .filter((mp: any) => mp.role === 'director')
+        .map((mp: any) => ({
+          name: mp.persons.name,
+          photo: null,
+          existingPhotoUrl: mp.persons.photo_url
+        }));
+      console.log('Mapped directors:', directors); // Для отладки
+
+      // Обновляем состояния актеров и режиссеров
+      setActors(actors);
+      setDirectors(directors);
+
+      // Обновляем форму
+      form.reset({
+        ...data,
+        genres,
+        actors,
+        directors,
+        // Сохраняем null для файловых полей, но храним URL
+        poster: null,
+        video: null
+      });
+
+      // Сохраняем фотографии персон
+      const photos: Record<string, string> = {};
+      data.media_persons.forEach((mp: any) => {
+        if (mp.persons.photo_url) {
+          photos[mp.persons.id] = mp.persons.photo_url;
+        }
+      });
+      setExistingPersonPhotos(photos);
+
+    } catch (error) {
+      console.error('Error fetching media data:', error);
+      toast.error('Failed to fetch media data');
+    }
+  }, [id, form, setActors, setDirectors]);
+
+  useEffect(() => {
+    if (isEditing && id) {
+      fetchMediaData();
+    }
+  }, [isEditing, id, fetchMediaData]); // Add fetchMediaData to dependencies
+
+  const uploadFile = async (file: File, folder: string) => {
+    try {
+      const path = `${folder}/${Date.now()}-${file.name}`;
+      
+      const { error, data } = await supabase.storage
+        .from('media')
+        .upload(path, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        console.error(`Error uploading to ${folder}:`, error);
+        throw error;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('media')
+        .getPublicUrl(path);
+
+      return publicUrl;
+    } catch (error) {
+      console.error(`Failed to upload file to ${folder}:`, error);
+      throw error;
+    }
+  };
+
+  const createPersonAndRelation = async (person: any, role: 'actor' | 'director', mediaId: string, characterName?: string) => {
+    try {
+      // 1. Create person
+      const { data: createdPerson, error: personError } = await supabase
+        .from('persons')
+        .insert({
+          name: person.name,
+          photo_url: person.photo?.[0] ? await uploadFile(person.photo[0], 'persons') : null
+        })
+        .select('id')
+        .single();
+
+      if (personError) throw personError;
+
+      // 2. Create media_person relation
+      const { error: relationError } = await supabase
+        .from('media_persons')
+        .insert({
+          media_id: mediaId,
+          person_id: createdPerson.id,
+          role: role,
+          character_name: characterName
+        });
+
+      if (relationError) throw relationError;
+
+    } catch (error) {
+      console.error('Error creating person and relation:', error);
+      throw error;
+    }
+  };
 
   const onSubmit = async (data: MediaFormValues) => {
     try {
-      setLoading(true)
+      setLoading(true);
+      
+      // Обновляем логику загрузки файлов
+      let posterUrl = existingPosterUrl;
+      let videoUrl = existingVideoUrl;
 
-      // Upload poster
-      const posterFile = data.poster[0]
-      const posterPath = `posters/${Date.now()}-${posterFile.name}`
-      await supabase.storage.from('media').upload(posterPath, posterFile)
-      const { data: { publicUrl: posterUrl } } = supabase.storage
-        .from('media')
-        .getPublicUrl(posterPath)
+      if (data.poster?.[0]) {
+        posterUrl = await uploadFile(data.poster[0], 'posters');
+      }
 
-      // Upload video
-      const videoFile = data.video[0]
-      const videoPath = `videos/${Date.now()}-${videoFile.name}`
-      await supabase.storage.from('media').upload(videoPath, videoFile)
-      const { data: { publicUrl: videoUrl } } = supabase.storage
-        .from('media')
-        .getPublicUrl(videoPath)
+      if (data.video?.[0]) {
+        videoUrl = await uploadToBunny(data.video[0]);
+      }
 
-      // Create media item
-      const { data: mediaItem } = await supabase
-        .from('media_items')
-        .insert({
-          title: data.title,
-          original_title: data.original_title,
-          type: data.type,
-          description: data.description,
-          year: data.year,
-          duration: data.duration,
-          poster_url: posterUrl,
-          video_url: videoUrl
-        })
-        .select()
-        .single()
+      if (!posterUrl) {
+        throw new Error('Poster is required');
+      }
+      if (!videoUrl) {
+        throw new Error('Video is required');
+      }
 
-      // Add genres
-      await Promise.all(
-        data.genres.map(genreId =>
+      const mediaData = {
+        title: data.title,
+        original_title: data.original_title || null,
+        type: data.type,
+        description: data.description,
+        year: data.year,
+        duration: data.duration,
+        poster_url: posterUrl,
+        video_url: videoUrl
+      };
+
+      let mediaItem;
+
+      if (isEditing && id) {
+        // Изменяем запрос обновления
+        const { error: updateError } = await supabase
+          .from('media_items')
+          .update(mediaData)
+          .eq('id', id);
+
+        if (updateError) throw updateError;
+        mediaItem = { id }; // Используем существующий ID
+
+        // Удаляем старые связи
+        await Promise.all([
+          supabase.from('media_genres').delete().eq('media_id', id),
+          supabase.from('media_persons').delete().eq('media_id', id)
+        ]);
+      } else {
+        // Создание нового медиа
+        const { data: newItem, error: insertError } = await supabase
+          .from('media_items')
+          .insert(mediaData)
+          .select('id')
+          .single();
+
+        if (insertError) throw insertError;
+        mediaItem = newItem;
+      }
+
+      // Добавляем новые связи
+      await Promise.all([
+        // Жанры
+        ...data.genres.map(genreId =>
           supabase
             .from('media_genres')
             .insert({ media_id: mediaItem.id, genre_id: genreId })
+        ),
+        // Актеры
+        ...data.actors.map(actor => 
+          createPersonAndRelation(actor, 'actor', mediaItem.id, actor.character)
+        ),
+        // Режиссеры
+        ...data.directors.map(director => 
+          createPersonAndRelation(director, 'director', mediaItem.id)
         )
-      )
+      ]);
 
-      // Add persons (actors and directors)
-      for (const actor of data.actors) {
-        // Upload actor photo if exists
-        let photoUrl = null
-        if (actor.photo?.[0]) {
-          const photoPath = `persons/${Date.now()}-${actor.photo[0].name}`
-          await supabase.storage.from('media').upload(photoPath, actor.photo[0])
-          const { data: { publicUrl } } = supabase.storage
-            .from('media')
-            .getPublicUrl(photoPath)
-          photoUrl = publicUrl
-        }
-
-        // Create or find person
-        const { data: person } = await supabase
-          .from('persons')
-          .insert({
-            name: actor.name,
-            photo_url: photoUrl
-          })
-          .select()
-          .single()
-
-        // Add relation
-        await supabase
-          .from('media_persons')
-          .insert({
-            media_id: mediaItem.id,
-            person_id: person.id,
-            role: 'actor',
-            character_name: actor.character
-          })
-      }
-
-      // Similar process for directors
-      for (const director of data.directors) {
-        let photoUrl = null
-        if (director.photo?.[0]) {
-          const photoPath = `persons/${Date.now()}-${director.photo[0].name}`
-          await supabase.storage.from('media').upload(photoPath, director.photo[0])
-          const { data: { publicUrl } } = supabase.storage
-            .from('media')
-            .getPublicUrl(photoPath)
-          photoUrl = publicUrl
-        }
-
-        const { data: person } = await supabase
-          .from('persons')
-          .insert({
-            name: director.name,
-            photo_url: photoUrl
-          })
-          .select()
-          .single()
-
-        await supabase
-          .from('media_persons')
-          .insert({
-            media_id: mediaItem.id,
-            person_id: person.id,
-            role: 'director'
-          })
-      }
-
-      toast.success('Media added successfully')
-      router.push('/admin')
+      toast.success(isEditing ? 'Media updated successfully' : 'Media added successfully');
+      router.push('/admin');
     } catch (error) {
-      console.error('Error adding media:', error)
-      toast.error('Failed to add media')
+      console.error('Error saving media:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to save media');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   // Добавляем состояния для актёров и режиссёров
-  const [actors, setActors] = useState<Actor[]>([{ name: '', character: '', photo: null }])
-  const [directors, setDirectors] = useState<Director[]>([{ name: '', photo: null }])
 
   // Добавляем функции для управления актёрами и режиссёрами
   const addActor = () => {
@@ -230,6 +383,42 @@ export function MediaForm() {
   }
 
   const fileInputClass = "relative block w-full text-sm text-foreground"
+
+  // Обновляем обработчик числовых полей
+  const handleNumberInput = (e: React.ChangeEvent<HTMLInputElement>, onChange: (value: number) => void) => {
+    const value = e.target.value;
+    if (value === '') {
+      onChange(0);
+    } else {
+      const parsed = parseInt(value);
+      if (!isNaN(parsed)) {
+        onChange(parsed);
+      }
+    }
+  };
+
+  // Обновляем обработчик файлов
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>, onChange: (value: FileList | null) => void) => {
+    if (e.target.files && e.target.files.length > 0) {
+      onChange(e.target.files);
+    }
+  };
+
+  // Обновляем функцию для генерации уникальных ID
+  const getUniqueInputId = (type: string, index?: number) => {
+    if (index !== undefined) {
+      return `${type}-input-${index}`;
+    }
+    return `${type}-input`;
+  };
+
+  // Добавляем функцию для получения URL видео с Bunny CDN
+  const getBunnyVideoUrl = (url: string) => {
+    const libraryId = process.env.NEXT_PUBLIC_BUNNY_LIBRARY_ID;
+    // Извлекаем ID видео из URL
+    const videoId = url.split('/').pop()?.split('.')[0];
+    return `https://iframe.mediadelivery.net/embed/${libraryId}/${videoId}`;
+  };
 
   return (
     <Form {...form}>
@@ -305,6 +494,57 @@ export function MediaForm() {
           )}
         />
 
+        <FormField
+          control={form.control}
+          name="genres"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('admin.media.form.genres')}</FormLabel>
+              <Select onValueChange={(value) => field.onChange([...field.value, value])}>
+                <FormControl>
+                  <div className="space-y-2">
+                    <SelectTrigger>
+                      <SelectValue placeholder={t('admin.media.form.selectGenres')} />
+                    </SelectTrigger>
+                    <div className="flex flex-wrap gap-2">
+                      {field.value.map((genreId) => {
+                        const genre = genres.find(g => g.id === genreId);
+                        return (
+                          <div
+                            key={genreId}
+                            className="flex items-center gap-1 bg-primary/10 px-2 py-1 rounded-md"
+                          >
+                            <span>{genre?.displayName}</span>
+                            <button
+                              type="button"
+                              onClick={() => field.onChange(field.value.filter(id => id !== genreId))}
+                              className="text-primary hover:text-primary/80"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </FormControl>
+                <SelectContent>
+                  {genres.map((genre) => (
+                    <SelectItem
+                      key={genre.id}
+                      value={genre.id}
+                      disabled={field.value.includes(genre.id)}
+                    >
+                      {genre.displayName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -313,7 +553,13 @@ export function MediaForm() {
               <FormItem>
                 <FormLabel>{t('admin.media.form.year')}</FormLabel>
                 <FormControl>
-                  <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} />
+                  <Input 
+                    type="number"
+                    min={1900}
+                    max={new Date().getFullYear()}
+                    value={field.value || ''}
+                    onChange={(e) => handleNumberInput(e, field.onChange)}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -328,10 +574,10 @@ export function MediaForm() {
                 <FormLabel>{t('admin.media.form.duration')}</FormLabel>
                 <FormControl>
                   <Input 
-                    type="number" 
-                    {...field} 
-                    onChange={e => field.onChange(parseInt(e.target.value))}
-                    placeholder={t('admin.media.form.durationPlaceholder')}
+                    type="number"
+                    min={1}
+                    value={field.value || ''}
+                    onChange={(e) => handleNumberInput(e, field.onChange)}
                   />
                 </FormControl>
                 <FormMessage />
@@ -344,30 +590,44 @@ export function MediaForm() {
           <FormField
             control={form.control}
             name="poster"
-            render={({ field: { onChange } }) => (
+            render={({ field: { onChange, value } }) => (
               <FormItem>
                 <FormLabel>{t('admin.media.form.poster')}</FormLabel>
                 <FormControl>
-                  <div className="relative group cursor-pointer">
-                    <div className="flex items-center gap-2 p-2 rounded-lg border border-input bg-background">
-                      <button
-                        type="button"
-                        className="px-4 py-2 rounded-full text-sm font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                        onClick={() => document.getElementById('poster-input')?.click()}
-                      >
-                        {t('admin.media.form.fileInputLabels.browse')}
-                      </button>
-                      <span className="text-sm text-muted-foreground">
-                        {t('admin.media.form.fileInputLabels.chooseFile')}
-                      </span>
+                  <div className="space-y-2">
+                    {existingPosterUrl && (
+                      <div className="relative w-40 h-40">
+                        <Image
+                          src={existingPosterUrl}
+                          alt="Current poster"
+                          fill
+                          className="object-cover rounded-lg"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        />
+                        <p className="text-sm text-muted-foreground mt-1">Current poster</p>
+                      </div>
+                    )}
+                    <div className="relative group cursor-pointer">
+                      <div className="flex items-center gap-2 p-2 rounded-lg border border-input bg-background">
+                        <button
+                          type="button"
+                          className="px-4 py-2 rounded-full text-sm font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                          onClick={() => document.getElementById(getUniqueInputId('poster'))?.click()}
+                        >
+                          {t('admin.media.form.fileInputLabels.browse')}
+                        </button>
+                        <span className="text-sm text-muted-foreground">
+                          {value?.[0]?.name || t('admin.media.form.fileInputLabels.noFileChosen')}
+                        </span>
+                      </div>
+                      <input
+                        id={getUniqueInputId('poster')}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileInput(e, onChange)}
+                        className="sr-only"
+                      />
                     </div>
-                    <input
-                      id="poster-input"
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => onChange(e.target.files)}
-                      className="sr-only"
-                    />
                   </div>
                 </FormControl>
                 <FormMessage />
@@ -378,30 +638,44 @@ export function MediaForm() {
           <FormField
             control={form.control}
             name="video"
-            render={({ field: { onChange } }) => (
+            render={({ field: { onChange, value } }) => (
               <FormItem>
                 <FormLabel>{t('admin.media.form.video')}</FormLabel>
                 <FormControl>
-                  <div className="relative group cursor-pointer">
-                    <div className="flex items-center gap-2 p-2 rounded-lg border border-input bg-background">
-                      <button
-                        type="button"
-                        className="px-4 py-2 rounded-full text-sm font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                        onClick={() => document.getElementById('video-input')?.click()}
-                      >
-                        {t('admin.media.form.fileInputLabels.browse')}
-                      </button>
-                      <span className="text-sm text-muted-foreground">
-                        {t('admin.media.form.fileInputLabels.chooseFile')}
-                      </span>
+                  <div className="space-y-2">
+                    {existingVideoUrl && (
+                      <div>
+                        <iframe
+                          src={getBunnyVideoUrl(existingVideoUrl)}
+                          className="w-full aspect-video rounded-lg"
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                        <p className="text-sm text-muted-foreground mt-1">Current video</p>
+                      </div>
+                    )}
+                    <div className="relative group cursor-pointer">
+                      <div className="flex items-center gap-2 p-2 rounded-lg border border-input bg-background">
+                        <button
+                          type="button"
+                          className="px-4 py-2 rounded-full text-sm font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                          onClick={() => document.getElementById(getUniqueInputId('video'))?.click()}
+                        >
+                          {t('admin.media.form.fileInputLabels.browse')}
+                        </button>
+                        <span className="text-sm text-muted-foreground">
+                          {value?.[0]?.name || t('admin.media.form.fileInputLabels.noFileChosen')}
+                        </span>
+                      </div>
+                      <input
+                        id={getUniqueInputId('video')}
+                        type="file"
+                        accept="video/*"
+                        onChange={(e) => handleFileInput(e, onChange)}
+                        className="sr-only"
+                      />
                     </div>
-                    <input
-                      id="video-input"
-                      type="file"
-                      accept="video/*"
-                      onChange={(e) => onChange(e.target.files)}
-                      className="sr-only"
-                    />
                   </div>
                 </FormControl>
                 <FormMessage />
@@ -449,30 +723,46 @@ export function MediaForm() {
               <FormField
                 control={form.control}
                 name={`actors.${index}.photo`}
-                render={({ field: { onChange } }) => (
+                render={({ field: { onChange, value } }) => (
                   <FormItem className="col-span-2">
                     <FormLabel>{t('admin.media.form.photo')}</FormLabel>
                     <FormControl>
-                      <div className="relative group cursor-pointer">
-                        <div className="flex items-center gap-2 p-2 rounded-lg border border-input bg-background">
-                          <button
-                            type="button"
-                            className="px-4 py-2 rounded-full text-sm font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                            onClick={() => document.getElementById('photo-input')?.click()}
-                          >
-                            {t('admin.media.form.fileInputLabels.browse')}
-                          </button>
-                          <span className="text-sm text-muted-foreground">
-                            {t('admin.media.form.fileInputLabels.noFileChosen')}
-                          </span>
+                      <div className="space-y-2">
+                        {/* Показываем существующее фото */}
+                        {actors[index].existingPhotoUrl && (
+                          <div className="relative w-20 h-20">
+                            <Image
+                              src={actors[index].existingPhotoUrl}
+                              alt="Actor photo"
+                              fill
+                              className="object-cover rounded-lg"
+                              sizes="80px"
+                            />
+                            <p className="text-sm text-muted-foreground mt-1">Current photo</p>
+                          </div>
+                        )}
+                        {/* Существующий input для загрузки нового фото */}
+                        <div className="relative group cursor-pointer">
+                          <div className="flex items-center gap-2 p-2 rounded-lg border border-input bg-background">
+                            <button
+                              type="button"
+                              className="px-4 py-2 rounded-full text-sm font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                              onClick={() => document.getElementById(getUniqueInputId('actor-photo', index))?.click()}
+                            >
+                              {t('admin.media.form.fileInputLabels.browse')}
+                            </button>
+                            <span className="text-sm text-muted-foreground">
+                              {value?.[0]?.name || t('admin.media.form.fileInputLabels.noFileChosen')}
+                            </span>
+                          </div>
+                          <input
+                            id={getUniqueInputId('actor-photo', index)}
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => handleFileInput(e, onChange)}
+                            className="sr-only"
+                          />
                         </div>
-                        <input
-                          id="photo-input"
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => onChange(e.target.files)}
-                          className="sr-only"
-                        />
                       </div>
                     </FormControl>
                     <FormMessage />
@@ -517,30 +807,46 @@ export function MediaForm() {
               <FormField
                 control={form.control}
                 name={`directors.${index}.photo`}
-                render={({ field: { onChange } }) => (
+                render={({ field: { onChange, value } }) => (
                   <FormItem className="col-span-2">
                     <FormLabel>{t('admin.media.form.photo')}</FormLabel>
                     <FormControl>
-                      <div className="relative group cursor-pointer">
-                        <div className="flex items-center gap-2 p-2 rounded-lg border border-input bg-background">
-                          <button
-                            type="button"
-                            className="px-4 py-2 rounded-full text-sm font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                            onClick={() => document.getElementById('photo-input')?.click()}
-                          >
-                            {t('admin.media.form.fileInputLabels.browse')}
-                          </button>
-                          <span className="text-sm text-muted-foreground">
-                            {t('admin.media.form.fileInputLabels.noFileChosen')}
-                          </span>
+                      <div className="space-y-2">
+                        {/* Показываем существующее фото */}
+                        {directors[index].existingPhotoUrl && (
+                          <div className="relative w-20 h-20">
+                            <Image
+                              src={directors[index].existingPhotoUrl}
+                              alt="Director photo"
+                              fill
+                              className="object-cover rounded-lg"
+                              sizes="80px"
+                            />
+                            <p className="text-sm text-muted-foreground mt-1">Current photo</p>
+                          </div>
+                        )}
+                        {/* Существующий input для загрузки нового фото */}
+                        <div className="relative group cursor-pointer">
+                          <div className="flex items-center gap-2 p-2 rounded-lg border border-input bg-background">
+                            <button
+                              type="button"
+                              className="px-4 py-2 rounded-full text-sm font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                              onClick={() => document.getElementById(getUniqueInputId('director-photo', index))?.click()}
+                            >
+                              {t('admin.media.form.fileInputLabels.browse')}
+                            </button>
+                            <span className="text-sm text-muted-foreground">
+                              {value?.[0]?.name || t('admin.media.form.fileInputLabels.noFileChosen')}
+                            </span>
+                          </div>
+                          <input
+                            id={getUniqueInputId('director-photo', index)}
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => handleFileInput(e, onChange)}
+                            className="sr-only"
+                          />
                         </div>
-                        <input
-                          id="photo-input"
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => onChange(e.target.files)}
-                          className="sr-only"
-                        />
                       </div>
                     </FormControl>
                     <FormMessage />
