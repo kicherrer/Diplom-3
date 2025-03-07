@@ -11,20 +11,21 @@ import { toast } from 'sonner'
 import { useUser } from '@/hooks/use-user'
 import { ru } from 'date-fns/locale'
 
-interface CommentType {
-  id: string
-  content: string
-  created_at: string
-  user_id: string
-  profile?: {
-    username: string
-    avatar_url: string
-  }
+interface CommentData {
+  id: string;
+  content: string;
+  created_at: string;
+  user_id: string;
+  profile: {
+    id: string;
+    username: string;
+    avatar_url: string;
+  };
 }
 
 interface CommentSectionProps {
   mediaId: string
-  comments?: CommentType[]
+  comments: CommentData[]
   onCommentAdded: () => void
 }
 

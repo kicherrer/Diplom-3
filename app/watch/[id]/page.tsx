@@ -1,8 +1,7 @@
 "use client"
 
 interface MediaGenre {
-  id: string;
-  genre: {
+  genres: {
     id: string;
     name: string;
     name_ru: string;
@@ -26,6 +25,40 @@ interface Genre {
   name: string;
 }
 
+interface MediaGenreWithGenres {
+  genres: {
+    id: string;
+    name: string;
+    name_ru: string;
+  };
+}
+
+// Добавляем интерфейс для необработанного комментария
+interface RawComment {
+  id: string;
+  content: string;
+  created_at: string;
+  user_id: string;
+  profiles: {
+    id: string;
+    username: string;
+    avatar_url: string;
+  };
+}
+
+// Обновляем интерфейс для комментария
+interface CommentWithProfile {
+  id: string;
+  content: string;
+  created_at: string;
+  user_id: string;
+  profiles: {
+    id: string;
+    username: string;
+    avatar_url: string;
+  };
+}
+
 import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
@@ -41,6 +74,56 @@ import { Clock, Calendar, Users } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { useUser } from '@/hooks/use-user'
 import { toast } from 'sonner'
+
+interface Profile {
+  id: string;
+  username: string;
+  avatar_url: string;
+}
+
+interface CommentWithProfile {
+  id: string;
+  content: string;
+  created_at: string;
+  user_id: string;
+  profiles: Profile; // изменено с массива на одиночный объект
+}
+
+interface RawCommentFromDB {
+  id: string;
+  content: string;
+  created_at: string;
+  user_id: string;
+  profiles: {
+    id: string;
+    username: string;
+    avatar_url: string;
+  };
+}
+
+interface ProcessedComment {
+  id: string;
+  content: string;
+  created_at: string;
+  user_id: string;
+  profile: {
+    id: string;
+    username: string;
+    avatar_url: string;
+  };
+}
+
+interface DatabaseComment {
+  id: string;
+  content: string;
+  created_at: string;
+  user_id: string;
+  profiles: {
+    id: string;
+    username: string;
+    avatar_url: string;
+  }[];
+}
 
 export default function WatchPage() {
   const { t, i18n } = useTranslation('common')
@@ -60,18 +143,22 @@ export default function WatchPage() {
 
   const fetchMediaData = useCallback(async () => {
     try {
-      // Основной запрос медиа
+      // Запрос основных данных медиа
       const { data: mediaData, error: mediaError } = await supabase
         .from('media_items')
         .select(`
           *,
           media_genres (
-            id,
-            genre:genres (
+            genres (
               id,
               name,
               name_ru
             )
+          ),
+          ratings (
+            id,
+            rating,
+            user_id
           ),
           media_persons (
             id,
@@ -82,15 +169,6 @@ export default function WatchPage() {
               name,
               photo_url
             )
-          ),
-          ratings (
-            id,
-            rating,
-            user_id
-          ),
-          media_views (
-            id,
-            count
           )
         `)
         .eq('id', id)
@@ -101,39 +179,41 @@ export default function WatchPage() {
         return
       }
 
-      // Отдельный запрос комментариев
-      const { data: commentsData, error: commentsError } = await supabase
+      // Отдельный запрос для комментариев с профилями
+      const { data: comments } = await supabase
         .from('comments')
-        .select('*')
+        .select(`
+          id,
+          content,
+          created_at,
+          user_id,
+          media_id
+        `)
         .eq('media_id', id)
         .order('created_at', { ascending: false })
 
-      if (commentsError) {
-        console.error('Error fetching comments:', commentsError)
-      }
-
-      // Если есть комментарии, получаем информацию о пользователях
-      if (commentsData && commentsData.length > 0) {
-        const userIds = commentsData.map(comment => comment.user_id)
-        const { data: profilesData } = await supabase
+      // Получаем профили пользователей для комментариев
+      const commentsWithProfiles = await Promise.all((comments || []).map(async (comment) => {
+        const { data: profileData } = await supabase
           .from('profiles')
           .select('id, username, avatar_url')
-          .in('id', userIds)
+          .eq('id', comment.user_id)
+          .single()
 
-        // Объединяем данные комментариев с данными пользователей
-        const processedComments = commentsData.map(comment => ({
+        return {
           ...comment,
-          user: profilesData?.find(profile => profile.id === comment.user_id)
-        }))
+          profile: profileData
+        }
+      }))
 
-        // Обновляем данные медиа с комментариями
-        setMedia({
-          ...mediaData,
-          comments: processedComments
-        })
-      } else {
-        setMedia(mediaData)
+      // Объединяем все данные
+      const fullData = {
+        ...mediaData,
+        comments: commentsWithProfiles
       }
+
+      console.log('Media data loaded:', fullData)
+      setMedia(fullData)
     } catch (error) {
       console.error('Error in fetchMediaData:', error)
     } finally {
@@ -182,15 +262,15 @@ export default function WatchPage() {
   }
 
   // Преобразуем комментарии в нужный формат
-  const processedComments = media.comments?.map((comment: Comment) => ({
+  const comments = media.comments?.map((comment: any) => ({
     ...comment,
-    profile: comment.user // переименовываем user в profile для совместимости
+    profile: comment.user // переименовываем поле user в profile для совместимости
   })) || []
 
   // Обработка жанров
   const processedGenres = media.media_genres?.map((mg: MediaGenre) => ({
-    id: mg.genre.id,
-    name: i18n.language === 'ru' ? mg.genre.name_ru : mg.genre.name
+    id: mg.genres.id,
+    name: i18n.language === 'ru' ? mg.genres.name_ru : mg.genres.name
   })) || []
 
   const actors = media.media_persons?.filter((mp: any) => mp?.role === 'actor') || []
@@ -245,11 +325,15 @@ export default function WatchPage() {
 
               <div className="flex flex-wrap items-center gap-4 text-sm">
                 <Badge variant="secondary">{t(`media.types.${media.type}`)}</Badge>
-                {media.categories && (
-                  <Badge variant="default" className="bg-primary/10">
-                    {i18n.language === 'ru' ? media.categories.name_ru : media.categories.name}
+                {media.media_genres?.map((mg: MediaGenreWithGenres) => (
+                  <Badge 
+                    key={mg.genres.id} 
+                    variant="outline"
+                    className="bg-primary/10"
+                  >
+                    {i18n.language === 'ru' ? mg.genres.name_ru : mg.genres.name}
                   </Badge>
-                )}
+                ))}
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4" />
                   <span>{media.duration} {t('media.minutes')}</span>
@@ -305,7 +389,7 @@ export default function WatchPage() {
             <div>
               <CommentSection
                 mediaId={id || ''}
-                comments={processedComments}
+                comments={media.comments || []}
                 onCommentAdded={fetchMediaData}
               />
             </div>

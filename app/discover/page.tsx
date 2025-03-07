@@ -55,6 +55,23 @@ interface ProcessedMediaItem extends MediaItem {
   viewCount: number;
 }
 
+interface RatingItem {
+  rating: number;
+}
+
+interface MediaViewItem {
+  count: number;
+}
+
+interface ProcessedData {
+  id: string;
+  title: string;
+  media_genres: MediaGenre[];
+  ratings?: RatingItem[];
+  media_views?: MediaViewItem[];
+  [key: string]: any;
+}
+
 export default function DiscoverPage() {
   const { t, i18n } = useTranslation('common')
   const [filters, setFilters] = useState<FilterState>({
@@ -94,7 +111,7 @@ export default function DiscoverPage() {
         .select(`
           *,
           media_genres (
-            genres (
+            genre:genres (
               id,
               name,
               name_ru
@@ -122,52 +139,45 @@ export default function DiscoverPage() {
         query = query.eq('type', filters.type)
       }
 
-      // Year range - исправленная версия
+      // Genre filter
+      if (filters.genres.length > 0) {
+        query = query.in('media_genres.genre.id', filters.genres)
+      }
+
+      // Year range
       query = query
         .gte('year', filters.year[0])
         .lte('year', filters.year[1])
 
       const { data, error } = await query
 
-      if (error) {
-        console.error('Query error details:', error)
-        throw error
-      }
+      if (error) throw error
 
-      // Process data with corrected property access
-      const processedData = (data || []).map((item: MediaItem) => ({
-        ...item,
-        genres: item.media_genres
-          ?.map(mg => ({
-            id: mg.genre.id,
-            name: i18n.language === 'ru' ? mg.genre.name_ru : mg.genre.name
-          }))
-          .filter(Boolean) || [],
-        averageRating: item.ratings?.length > 0
-          ? item.ratings.reduce((acc, curr) => acc + (curr.rating || 0), 0) / item.ratings.length
-          : 0,
-        viewCount: item.media_views?.[0]?.count || 0
-      }))
+      // Process data with null checks
+      const processedData = (data || []).map((item: ProcessedData) => {
+        const ratings = item.ratings || [];
+        const mediaGenres = item.media_genres || [];
+        const mediaViews = item.media_views || [];
 
-      // Фильтрация и сортировка
-      const filteredAndSortedData = processedData
-        .filter(item => item.averageRating >= filters.rating)
-        .sort((a, b) => {
-          switch (filters.sort) {
-            case 'rating':
-              return b.averageRating - a.averageRating
-            case 'views':
-              return (b.viewCount || 0) - (a.viewCount || 0)
-            case 'newest':
-              return b.year - a.year
-            case 'oldest':
-              return a.year - b.year
-            default:
-              return 0
-          }
-        })
+        return {
+          ...item,
+          genres: mediaGenres
+            .map((mg: MediaGenre) => ({
+              id: mg.genre?.id,
+              name: i18n.language === 'ru' ? mg.genre?.name_ru : mg.genre?.name
+            }))
+            .filter(Boolean) || [],
+          averageRating: ratings.length > 0
+            ? ratings.reduce((acc: number, curr: RatingItem) => 
+                acc + (curr?.rating || 0), 
+                0
+              ) / ratings.length
+            : 0,
+          viewCount: mediaViews[0]?.count || 0
+        };
+      });
 
-      setMedia(filteredAndSortedData)
+      setMedia(processedData)
     } catch (error) {
       console.error('Supabase query error:', error)
       setMedia([])
