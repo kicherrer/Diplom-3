@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -17,6 +17,18 @@ interface CommentData {
   created_at: string;
   user_id: string;
   profile: {
+    id: string;
+    username: string;
+    avatar_url: string;
+  };
+}
+
+interface CommentResponse {
+  id: string;
+  content: string;
+  created_at: string;
+  user_id: string;
+  user: {
     id: string;
     username: string;
     avatar_url: string;
@@ -41,11 +53,8 @@ export function CommentSection({ mediaId, comments: initialComments, onCommentAd
       const { data, error } = await supabase
         .from('comments')
         .select(`
-          id,
-          content,
-          created_at,
-          user_id,
-          profiles:profiles!inner(
+          *,
+          author:profiles!user_id (
             id,
             username,
             avatar_url
@@ -62,17 +71,22 @@ export function CommentSection({ mediaId, comments: initialComments, onCommentAd
         created_at: comment.created_at,
         user_id: comment.user_id,
         profile: {
-          id: comment.profiles[0].id,
-          username: comment.profiles[0].username,
-          avatar_url: comment.profiles[0].avatar_url
+          id: comment.author.id,
+          username: comment.author.username,
+          avatar_url: comment.author.avatar_url
         }
       }))
 
+      console.log('Formatted comments:', formattedComments) // для отладки
       setComments(formattedComments)
     } catch (error) {
       console.error('Error fetching comments:', error)
     }
   }, [mediaId])
+
+  useEffect(() => {
+    fetchComments();
+  }, [fetchComments]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -80,10 +94,6 @@ export function CommentSection({ mediaId, comments: initialComments, onCommentAd
 
     try {
       setLoading(true)
-      if (!user) {
-        toast.error(t('watch.login.requiredComment'))
-        return
-      }
 
       // Добавляем комментарий
       const { error: commentError } = await supabase
@@ -97,7 +107,7 @@ export function CommentSection({ mediaId, comments: initialComments, onCommentAd
       if (commentError) throw commentError
 
       // Добавляем активность
-      const { error: activityError } = await supabase
+      await supabase
         .from('user_activities')
         .insert({
           user_id: user.id,
@@ -106,10 +116,8 @@ export function CommentSection({ mediaId, comments: initialComments, onCommentAd
           content: content.trim()
         })
 
-      if (activityError) throw activityError
-
       setContent('')
-      await fetchComments()
+      await fetchComments() // Сразу обновляем комментарии
       if (onCommentAdded) onCommentAdded()
       toast.success(t('watch.success.comment'))
     } catch (error) {
