@@ -1,5 +1,31 @@
 "use client"
 
+interface MediaGenre {
+  id: string;
+  genre: {
+    id: string;
+    name: string;
+    name_ru: string;
+  };
+}
+
+interface Comment {
+  id: string;
+  content: string;
+  created_at: string;
+  user_id: string;
+  user: {
+    id: string;
+    username: string;
+    avatar_url: string;
+  };
+}
+
+interface Genre {
+  id: string;
+  name: string;
+}
+
 import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
@@ -17,7 +43,7 @@ import { useUser } from '@/hooks/use-user'
 import { toast } from 'sonner'
 
 export default function WatchPage() {
-  const { t } = useTranslation('common')
+  const { t, i18n } = useTranslation('common')
   const params = useParams()
   const id = Array.isArray(params?.id) ? params.id[0] : params?.id
   const [media, setMedia] = useState<any>(null)
@@ -34,18 +60,21 @@ export default function WatchPage() {
 
   const fetchMediaData = useCallback(async () => {
     try {
-      const { data, error } = await supabase
+      // Основной запрос медиа
+      const { data: mediaData, error: mediaError } = await supabase
         .from('media_items')
         .select(`
           *,
-          media_genres!left (
-            genres (
+          media_genres (
+            id,
+            genre:genres (
               id,
               name,
               name_ru
             )
           ),
-          media_persons!left (
+          media_persons (
+            id,
             role,
             character_name,
             persons (
@@ -54,41 +83,59 @@ export default function WatchPage() {
               photo_url
             )
           ),
-          ratings!left (
+          ratings (
+            id,
             rating,
             user_id
           ),
-          comments!left (
+          media_views (
             id,
-            content,
-            created_at,
-            user_id
+            count
           )
         `)
         .eq('id', id)
         .single()
 
-      if (error) throw error
+      if (mediaError) {
+        console.error('Error fetching media:', mediaError)
+        return
+      }
 
-      // Если есть комментарии, получаем информацию о пользователях отдельно
-      if (data?.comments && data.comments.length > 0) {
-        const userIds = data.comments.map((c: any) => c.user_id)
-        const { data: profiles } = await supabase
+      // Отдельный запрос комментариев
+      const { data: commentsData, error: commentsError } = await supabase
+        .from('comments')
+        .select('*')
+        .eq('media_id', id)
+        .order('created_at', { ascending: false })
+
+      if (commentsError) {
+        console.error('Error fetching comments:', commentsError)
+      }
+
+      // Если есть комментарии, получаем информацию о пользователях
+      if (commentsData && commentsData.length > 0) {
+        const userIds = commentsData.map(comment => comment.user_id)
+        const { data: profilesData } = await supabase
           .from('profiles')
           .select('id, username, avatar_url')
           .in('id', userIds)
 
-        // Добавляем информацию о пользователях к комментариям
-        data.comments = data.comments.map((comment: any) => ({
+        // Объединяем данные комментариев с данными пользователей
+        const processedComments = commentsData.map(comment => ({
           ...comment,
-          profile: profiles?.find((p: any) => p.id === comment.user_id)
+          user: profilesData?.find(profile => profile.id === comment.user_id)
         }))
-      }
 
-      console.log('Fetched media data:', data)
-      setMedia(data)
+        // Обновляем данные медиа с комментариями
+        setMedia({
+          ...mediaData,
+          comments: processedComments
+        })
+      } else {
+        setMedia(mediaData)
+      }
     } catch (error) {
-      console.error('Error fetching media:', error)
+      console.error('Error in fetchMediaData:', error)
     } finally {
       setLoading(false)
     }
@@ -134,6 +181,18 @@ export default function WatchPage() {
     return <div>Media not found</div>
   }
 
+  // Преобразуем комментарии в нужный формат
+  const processedComments = media.comments?.map((comment: Comment) => ({
+    ...comment,
+    profile: comment.user // переименовываем user в profile для совместимости
+  })) || []
+
+  // Обработка жанров
+  const processedGenres = media.media_genres?.map((mg: MediaGenre) => ({
+    id: mg.genre.id,
+    name: i18n.language === 'ru' ? mg.genre.name_ru : mg.genre.name
+  })) || []
+
   const actors = media.media_persons?.filter((mp: any) => mp?.role === 'actor') || []
   const directors = media.media_persons?.filter((mp: any) => mp?.role === 'director') || []
   const genres = media.media_genres || []
@@ -153,9 +212,9 @@ export default function WatchPage() {
             src={media.poster_url || '/placeholder-image.jpg'}
             alt={media.title}
             fill
+            priority
             className="object-cover blur-sm opacity-30"
             sizes="100vw"
-            priority
           />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-background/20" />
         </div>
@@ -185,23 +244,30 @@ export default function WatchPage() {
               )}
 
               <div className="flex flex-wrap items-center gap-4 text-sm">
-                <Badge variant="secondary">{media.type}</Badge>
+                <Badge variant="secondary">{t(`media.types.${media.type}`)}</Badge>
+                {media.categories && (
+                  <Badge variant="default" className="bg-primary/10">
+                    {i18n.language === 'ru' ? media.categories.name_ru : media.categories.name}
+                  </Badge>
+                )}
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4" />
-                  <span>{media.duration} min</span>
+                  <span>{media.duration} {t('media.minutes')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
                   <span>{media.year}</span>
                 </div>
                 <StarRating value={averageRating} readOnly />
-                <span className="text-muted-foreground">({ratings.length} ratings)</span>
+                <span className="text-muted-foreground">
+                  ({ratings.length} {t('media.ratings')})
+                </span>
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                {genres.map((mg: any) => (
-                  <Badge key={mg.genres?.id} variant="outline">
-                    {mg.genres?.name}
+              <div className="flex flex-wrap gap-2 mt-4">
+                {processedGenres.map((genre: Genre) => (
+                  <Badge key={genre.id} variant="outline">
+                    {genre.name}
                   </Badge>
                 ))}
               </div>
@@ -239,7 +305,7 @@ export default function WatchPage() {
             <div>
               <CommentSection
                 mediaId={id || ''}
-                comments={media.comments || []}
+                comments={processedComments}
                 onCommentAdded={fetchMediaData}
               />
             </div>

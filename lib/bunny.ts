@@ -52,3 +52,15 @@ export async function uploadToBunny(file: File) {
     throw error;
   }
 }
+
+export const getBunnyVideoUrl = (videoId: string | null) => {
+  if (!videoId) return ''
+  
+  const libraryId = process.env.NEXT_PUBLIC_BUNNY_LIBRARY_ID
+  return `https://iframe.mediadelivery.net/embed/${libraryId}/${videoId}`
+}
+
+export const getBunnyStreamUrl = (videoId: string) => {
+  const libraryId = process.env.NEXT_PUBLIC_BUNNY_LIBRARY_ID
+  return `https://video.bunnycdn.com/play/${libraryId}/${videoId}`
+}

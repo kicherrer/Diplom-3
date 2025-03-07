@@ -298,7 +298,7 @@
   "discover": {
     "search": "Search",
     "filters": "Filters",
-    "searchPlaceholder": "Search for movies and TV shows...",
+    "searchPlaceholder": "Search movies and TV shows...",
     "filter": {
       "title": "Filters",
       "searchLabel": "Search",
@@ -386,5 +386,14 @@
       "rating": "Failed to save rating",
       "comment": "Failed to add comment"
     }
+  },
+  "media": {
+    "types": {
+      "movie": "Movie",
+      "tv": "TV Show"
+    },
+    "duration": "{{count}} min",
+    "minutes": "min",
+    "ratings": "ratings"
   }
 }

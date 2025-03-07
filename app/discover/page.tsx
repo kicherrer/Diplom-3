@@ -23,6 +23,38 @@ interface FilterState {
   sort: SortOption
 }
 
+interface Genre {
+  id: string
+  name: string
+  name_ru: string
+  displayName?: string
+}
+
+interface MediaGenre {
+  id: string;
+  genre: {
+    id: string;
+    name: string;
+    name_ru: string;
+  }
+}
+
+interface MediaItem {
+  id: string;
+  title: string;
+  type: string;
+  year: number;
+  media_genres: MediaGenre[];
+  ratings: Array<{ rating: number }>;
+  media_views: Array<{ count: number }>;
+}
+
+interface ProcessedMediaItem extends MediaItem {
+  genres: { id: string; name: string; }[];
+  averageRating: number;
+  viewCount: number;
+}
+
 export default function DiscoverPage() {
   const { t, i18n } = useTranslation('common')
   const [filters, setFilters] = useState<FilterState>({
@@ -34,7 +66,7 @@ export default function DiscoverPage() {
     sort: 'rating'
   })
   const [media, setMedia] = useState<any[]>([])
-  const [genres, setGenres] = useState<any[]>([])
+  const [genres, setGenres] = useState<Genre[]>([])
   const [loading, setLoading] = useState(true)
   
   const debouncedSearch = useDebounce(filters.search, 300)
@@ -45,7 +77,7 @@ export default function DiscoverPage() {
       .from('genres')
       .select('id, name, name_ru')
     if (data) {
-      const processedGenres = data.map(genre => ({
+      const processedGenres: Genre[] = data.map(genre => ({
         ...genre,
         displayName: i18n.language === 'ru' ? genre.name_ru : genre.name
       }));
@@ -61,94 +93,63 @@ export default function DiscoverPage() {
         .from('media_items')
         .select(`
           *,
-          media_genres!left (
+          media_genres (
             genres (
               id,
               name,
               name_ru
             )
           ),
-          ratings!left (
+          ratings (
             rating,
             user_id
           ),
-          media_persons!left (
-            role,
-            character_name,
-            persons (
-              id,
-              name,
-              photo_url
-            )
-          ),
-          media_views!left (
+          media_views (
             count
           )
         `)
 
-      // Улучшенный поиск с учетом частичных совпадений
+      // Search filter
       if (debouncedSearch) {
-        const searchTerms = debouncedSearch.toLowerCase().trim().split(' ')
-        const searchConditions = searchTerms.map(term => `
-          or(
-            title.ilike.%${term}%,
-            original_title.ilike.%${term}%,
-            description.ilike.%${term}%
-          )
-        `).join(',')
-        
-        query = query.or(searchConditions)
+        const searchTerm = debouncedSearch.toLowerCase().trim()
+        query = query.or(
+          `title.ilike.%${searchTerm}%,original_title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`
+        )
       }
 
-      // Фильтр по типу
+      // Type filter
       if (filters.type !== 'all') {
         query = query.eq('type', filters.type)
       }
 
-      // Фильтр по жанрам (исправленный)
-      if (filters.genres.length > 0) {
-        query = query.in('media_genres.genre_id', filters.genres)
-      }
-
-      // Фильтр по годам
+      // Year range - исправленная версия
       query = query
         .gte('year', filters.year[0])
         .lte('year', filters.year[1])
 
-      console.log('Executing query...') // Заменяем проблемную строку на простой лог
-      
-      let { data, error } = await query
+      const { data, error } = await query
 
       if (error) {
-        console.error('Query error:', error)
+        console.error('Query error details:', error)
         throw error
       }
 
-      console.log('Raw data:', data) // Для отладки
-
-      // Обработка данных
-      const processedData = (data || []).map(item => ({
+      // Process data with corrected property access
+      const processedData = (data || []).map((item: MediaItem) => ({
         ...item,
-        genres: item.media_genres?.map((mg: any) => ({
-          id: mg.genres.id,
-          name: i18n.language === 'ru' ? mg.genres.name_ru : mg.genres.name
-        })).filter(Boolean) || [],
+        genres: item.media_genres
+          ?.map(mg => ({
+            id: mg.genre.id,
+            name: i18n.language === 'ru' ? mg.genre.name_ru : mg.genre.name
+          }))
+          .filter(Boolean) || [],
         averageRating: item.ratings?.length > 0
-          ? item.ratings.reduce((acc: number, curr: any) => acc + (curr.rating || 0), 0) / item.ratings.length
+          ? item.ratings.reduce((acc, curr) => acc + (curr.rating || 0), 0) / item.ratings.length
           : 0,
-        viewCount: item.media_views?.[0]?.count || 0,
-        actors: item.media_persons?.filter((mp: any) => mp.role === 'actor').map((mp: any) => ({
-          name: mp.persons.name,
-          photo: mp.persons.photo_url,
-          character: mp.character_name
-        })) || [],
-        directors: item.media_persons?.filter((mp: any) => mp.role === 'director').map((mp: any) => ({
-          name: mp.persons.name,
-          photo: mp.persons.photo_url
-        })) || []
+        viewCount: item.media_views?.[0]?.count || 0
       }))
 
-      // Фильтрация по рейтингу и сортировка
+      // Фильтрация и сортировка
       const filteredAndSortedData = processedData
         .filter(item => item.averageRating >= filters.rating)
         .sort((a, b) => {
@@ -166,10 +167,9 @@ export default function DiscoverPage() {
           }
         })
 
-      console.log('Filtered data:', filteredAndSortedData) // Для отладки
       setMedia(filteredAndSortedData)
     } catch (error) {
-      console.error('Error fetching media:', error)
+      console.error('Supabase query error:', error)
       setMedia([])
     } finally {
       setLoading(false)
@@ -185,10 +185,10 @@ export default function DiscoverPage() {
   }, [fetchMedia])
 
   return (
-    <div className="container py-8">
+    <div className="container py-6">
       {/* Search and Filters */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pb-6">
-        <div className="flex flex-col gap-4">
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pb-4 mb-6">
+        <div className="flex flex-col gap-4 max-w-5xl mx-auto">
           <div className="flex gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -220,7 +220,7 @@ export default function DiscoverPage() {
               value={filters.type}
               onValueChange={(value: MediaType) => setFilters(f => ({ ...f, type: value }))}
             >
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-[130px]">
                 <SelectValue placeholder={t('discover.filter.category')} />
               </SelectTrigger>
               <SelectContent>
@@ -234,7 +234,7 @@ export default function DiscoverPage() {
               value={filters.sort}
               onValueChange={(value: SortOption) => setFilters(f => ({ ...f, sort: value }))}
             >
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-[130px]">
                 <SelectValue placeholder={t('discover.filter.sort')} />
               </SelectTrigger>
               <SelectContent>
@@ -246,7 +246,7 @@ export default function DiscoverPage() {
             </Select>
 
             <Select>
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-[130px]">
                 <SelectValue placeholder={t('discover.filter.genre')} />
               </SelectTrigger>
               <SelectContent>
@@ -266,16 +266,18 @@ export default function DiscoverPage() {
             </Select>
 
             <div className="flex items-center gap-2">
-              <span className="text-sm">{t('discover.filter.minRating')}:</span>
+              <span className="text-sm whitespace-nowrap">
+                {t('discover.filter.minRating')}:
+              </span>
               <Slider
                 value={[filters.rating]}
                 min={0}
                 max={5}
                 step={0.5}
                 onValueChange={([value]) => setFilters(f => ({ ...f, rating: value }))}
-                className="w-[200px]"
+                className="w-[150px]"
               />
-              <span className="text-sm">{filters.rating}</span>
+              <span className="text-sm min-w-[2ch]">{filters.rating}</span>
             </div>
           </div>
 
@@ -304,8 +306,8 @@ export default function DiscoverPage() {
 
       {/* Results */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {[...Array(8)].map((_, i) => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 max-w-7xl mx-auto">
+          {[...Array(10)].map((_, i) => (
             <div key={i} className="animate-pulse">
               <div className="aspect-[2/3] bg-muted rounded-lg" />
               <div className="space-y-2 mt-2">
@@ -316,16 +318,26 @@ export default function DiscoverPage() {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {media.map((item) => (
-            <MediaCard
-              key={item.id}
-              media={item}
-              rating={item.averageRating}
-              views={item.viewCount}
-            />
-          ))}
-        </div>
+        <>
+          {media.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 max-w-7xl mx-auto">
+              {media.map((item) => (
+                <MediaCard
+                  key={item.id}
+                  media={item}
+                  rating={item.averageRating}
+                  views={item.viewCount}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-lg text-muted-foreground">
+                {t('discover.empty.description')}
+              </p>
+            </div>
+          )}
+        </>
       )}
     </div>
   )

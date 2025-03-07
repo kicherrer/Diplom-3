@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { formatDistanceToNow } from 'date-fns'
 import { toast } from 'sonner'
 import { useUser } from '@/hooks/use-user'
+import { ru } from 'date-fns/locale'
 
 interface CommentType {
   id: string
@@ -28,7 +29,7 @@ interface CommentSectionProps {
 }
 
 export function CommentSection({ mediaId, comments = [], onCommentAdded }: CommentSectionProps) {
-  const { t } = useTranslation('common')
+  const { t, i18n } = useTranslation('common')
   const [content, setContent] = useState('')
   const [loading, setLoading] = useState(false)
   const { user } = useUser()
@@ -93,7 +94,10 @@ export function CommentSection({ mediaId, comments = [], onCommentAdded }: Comme
               <div className="flex items-center gap-2">
                 <span className="font-medium">{comment.profile?.username}</span>
                 <span className="text-sm text-muted-foreground">
-                  {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                  {formatDistanceToNow(new Date(comment.created_at), {
+                    addSuffix: true,
+                    locale: i18n.language === 'ru' ? ru : undefined
+                  })}
                 </span>
               </div>
               <p className="mt-1">{comment.content}</p>

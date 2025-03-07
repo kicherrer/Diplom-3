@@ -1,61 +1,63 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 
-interface Profile {
-  id: string
-  username: string
-  avatar_url?: string
-  is_admin: boolean
-}
-
-interface User {
-  id: string
-  email?: string
-  profile?: Profile
-}
-
 export function useUser() {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
 
   useEffect(() => {
+    let mounted = true
+
+    // Получаем текущего пользователя
     const getCurrentUser = async () => {
       try {
         const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
         
-        if (authError) throw authError
+        if (!mounted) return
         
+        if (authError) {
+          console.error('Auth error:', authError)
+          setUser(null)
+          return
+        }
+
         if (!authUser) {
           setUser(null)
           return
         }
 
+        // Получаем профиль пользователя
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', authUser.id)
           .single()
 
-        if (profileError) throw profileError
+        if (!mounted) return
 
-        setUser({
-          id: authUser.id,
-          email: authUser.email,
-          profile: profile as Profile
-        })
+        if (profileError) {
+          console.error('Profile error:', profileError)
+          setUser(null)
+          return
+        }
 
-      } catch (e) {
-        setError(e as Error)
+        setUser({ ...authUser, profile })
+      } catch (error) {
+        if (!mounted) return
+        console.error('Error in getCurrentUser:', error)
         setUser(null)
       } finally {
-        setLoading(false)
+        if (mounted) {
+          setLoading(false)
+        }
       }
     }
 
     getCurrentUser()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return
+
       if (session?.user) {
         const { data: profile } = await supabase
           .from('profiles')
@@ -63,21 +65,24 @@ export function useUser() {
           .eq('id', session.user.id)
           .single()
 
-        setUser({
-          id: session.user.id,
-          email: session.user.email,
-          profile: profile as Profile
-        })
+        if (mounted) {
+          setUser({ ...session.user, profile })
+        }
       } else {
-        setUser(null)
+        if (mounted) {
+          setUser(null)
+        }
       }
-      setLoading(false)
+      if (mounted) {
+        setLoading(false)
+      }
     })
 
     return () => {
+      mounted = false
       subscription.unsubscribe()
     }
   }, [])
 
-  return { user, loading, error }
+  return { user, loading }
 }
