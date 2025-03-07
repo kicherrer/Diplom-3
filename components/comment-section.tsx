@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -29,15 +29,54 @@ interface CommentSectionProps {
   onCommentAdded: () => void
 }
 
-export function CommentSection({ mediaId, comments = [], onCommentAdded }: CommentSectionProps) {
+export function CommentSection({ mediaId, comments: initialComments, onCommentAdded }: CommentSectionProps) {
   const { t, i18n } = useTranslation('common')
   const [content, setContent] = useState('')
   const [loading, setLoading] = useState(false)
   const { user } = useUser()
+  const [comments, setComments] = useState<CommentData[]>(initialComments)
+
+  const fetchComments = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('comments')
+        .select(`
+          id,
+          content,
+          created_at,
+          user_id,
+          profiles:profiles!inner(
+            id,
+            username,
+            avatar_url
+          )
+        `)
+        .eq('media_id', mediaId)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+
+      const formattedComments: CommentData[] = (data || []).map(comment => ({
+        id: comment.id,
+        content: comment.content,
+        created_at: comment.created_at,
+        user_id: comment.user_id,
+        profile: {
+          id: comment.profiles[0].id,
+          username: comment.profiles[0].username,
+          avatar_url: comment.profiles[0].avatar_url
+        }
+      }))
+
+      setComments(formattedComments)
+    } catch (error) {
+      console.error('Error fetching comments:', error)
+    }
+  }, [mediaId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!content.trim()) return
+    if (!user || !content.trim()) return
 
     try {
       setLoading(true)
@@ -46,18 +85,32 @@ export function CommentSection({ mediaId, comments = [], onCommentAdded }: Comme
         return
       }
 
-      const { error } = await supabase
+      // Добавляем комментарий
+      const { error: commentError } = await supabase
         .from('comments')
         .insert({
+          content: content.trim(),
           media_id: mediaId,
+          user_id: user.id
+        })
+
+      if (commentError) throw commentError
+
+      // Добавляем активность
+      const { error: activityError } = await supabase
+        .from('user_activities')
+        .insert({
           user_id: user.id,
+          media_id: mediaId,
+          activity_type: 'comment',
           content: content.trim()
         })
 
-      if (error) throw error
+      if (activityError) throw activityError
 
       setContent('')
-      onCommentAdded()
+      await fetchComments()
+      if (onCommentAdded) onCommentAdded()
       toast.success(t('watch.success.comment'))
     } catch (error) {
       console.error('Error adding comment:', error)

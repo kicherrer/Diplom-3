@@ -8,6 +8,7 @@ import { Eye } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useRouter } from 'next/navigation'
+import { motion } from 'framer-motion'
 
 interface Genre {
   id: string
@@ -42,15 +43,39 @@ interface MediaCardProps {
   media: Media;
   rating?: number;
   views?: number;
+  compact?: boolean; // Добавляем prop compact
 }
 
-export function MediaCard({ media, rating = 0, views = 0 }: MediaCardProps) {
+export function MediaCard({ media, rating = 0, views = 0, compact = false }: MediaCardProps) {
   const { t, i18n } = useTranslation('common')
   const router = useRouter()
   const [imageError, setImageError] = useState(false)
 
   const handleClick = () => {
     router.push(`/watch/${media.id}`)
+  }
+
+  // Используем compact для условного рендеринга
+  if (compact) {
+    return (
+      <motion.div
+        whileHover={{ scale: 1.05 }}
+        className="cursor-pointer"
+        onClick={() => router.push(`/watch/${media.id}`)}
+      >
+        <div className="relative aspect-[2/3] rounded-lg overflow-hidden">
+          <Image
+            src={media.poster_url || '/placeholder-image.jpg'}
+            alt={media.title}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 50vw, 33vw"
+          />
+        </div>
+        <h3 className="mt-2 text-sm font-medium truncate">{media.title}</h3>
+        <p className="text-xs text-muted-foreground">{media.year}</p>
+      </motion.div>
+    )
   }
 
   return (

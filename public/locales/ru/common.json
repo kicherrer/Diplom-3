@@ -123,14 +123,23 @@
     "activity": {
       "recent": "Недавняя активность",
       "watched": "посмотрел(а)",
-      "rated": "оценил(а)",
+      "ratingAction": "оценил(а)",
       "reviewed": "оставил(а) отзыв",
       "daysAgo": "дней назад",
       "weekAgo": "неделю назад",
       "gaveIt": "поставил(а)",
       "stars": "звезд",
       "addedToWatchedList": "добавлено в просмотренное",
-      "addedAReview": "добавлен отзыв"
+      "addedAReview": "добавлен отзыв",
+      "ratedMedia": "Оценил &ldquo;{{title}}&rdquo; на {{rating}} звезд",
+      "watchedMedia": "Посмотрел &ldquo;{{title}}&rdquo;",
+      "commentedMedia": "Оставил комментарий к &ldquo;{{title}}&rdquo;",
+      "noActivity": "Нет недавней активности",
+      "statusUpdate": {
+        "watching": "Начал(а) смотреть «{{title}}»",
+        "plan_to_watch": "Добавил(а) «{{title}}» в список «Буду смотреть»",
+        "completed": "Завершил(а) просмотр «{{title}}»"
+      }
     },
     "actions": {
       "changeBanner": "Изменить баннер",
@@ -145,7 +154,8 @@
       "activity": "Активность",
       "achievements": "Достижения",
       "stats": "Статистика",
-      "settings": "Настройки"
+      "settings": "Настройки",
+      "watchlist": "Мои списки"
     },
     "sections": {
       "basic": "Основная информация",
@@ -164,6 +174,13 @@
       "bannerError": "Ошибка при загрузке баннера",
       "avatarUpdated": "Аватар успешно обновлен",
       "bannerUpdated": "Баннер успешно обновлен"
+    },
+    "watchlist": {
+      "title": "Мои списки",
+      "watching": "Смотрю",
+      "planToWatch": "Буду смотреть",
+      "completed": "Просмотрено",
+      "empty": "Список пуст"
     }
   },
   "achievements": {
@@ -383,6 +400,12 @@
     "error": {
       "rating": "Ошибка при сохранении оценки",
       "comment": "Ошибка при добавлении комментария"
+    },
+    "status": {
+      "watching": "Смотрю",
+      "planToWatch": "Буду смотреть",
+      "completed": "Просмотрено",
+      "updated": "Статус обновлен"
     }
   }
 }

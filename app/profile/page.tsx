@@ -1,5 +1,8 @@
 "use client"
 
+// Добавляем импорт ActivityFeed
+import { ActivityFeed } from '@/components/profile/activity-feed'
+import { User as AuthUser } from '@supabase/supabase-js'
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -22,8 +25,9 @@ import {
   User, Edit, Save, Film, Tv, Star, Calendar, Award, 
   Upload, ImageIcon, BarChart, Activity, Clock, MessageSquare,
   Palette, Badge as BadgeIcon, Link as LinkIcon, Settings, 
-  Sparkles, Zap, Brush, RefreshCw
+  Sparkles, Zap, Brush, RefreshCw, Bookmark
 } from "lucide-react"
+import { Watchlist } from '@/components/profile/watchlist'
 
 export default function ProfilePage() {
   const { t, i18n } = useTranslation('common')
@@ -38,6 +42,7 @@ export default function ProfilePage() {
     watchedShows: 0,
     totalRatings: 0
   })
+  const [user, setUser] = useState<AuthUser | null>(null)
   
   const [formData, setFormData] = useState({
     username: '',
@@ -100,6 +105,13 @@ export default function ProfilePage() {
     fetchAchievements()
     fetchStats()
   }, [fetchProfile]) // Add fetchProfile to dependencies, remove t since it's not used directly
+
+  useEffect(() => {
+    // Получаем текущего пользователя при загрузке
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user)
+    })
+  }, [])
 
   const fetchAchievements = async () => {
     try {
@@ -883,6 +895,10 @@ export default function ProfilePage() {
                 <BarChart className="h-4 w-4 mr-2" />
                 {t('profile.tabs.stats')}
               </TabsTrigger>
+              <TabsTrigger value="watchlist">
+                <Bookmark className="h-4 w-4 mr-2" />
+                {t('profile.tabs.watchlist')}
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="activity" className="mt-4 space-y-4">
@@ -891,62 +907,7 @@ export default function ProfilePage() {
                   <CardTitle>{t('profile.activity.recent')}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {/* Sample activity items - would be populated from real data */}
-                    <motion.div 
-                      className="flex items-start gap-4 p-4 border rounded-lg"
-                      whileHover={{ x: 5, backgroundColor: 'rgba(var(--primary), 0.05)' }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                    >
-                      <div className={`rounded-full p-2 ${themeClasses.highlight}`}>
-                        <Star className={`h-4 w-4 ${themeClasses.text}`} />
-                      </div>
-                      <div>
-                        <p className="font-medium">{t('profile.activity.rated')} &quot;Inception&quot;</p>
-                        <p className="text-sm text-muted-foreground">{t('profile.activity.gaveIt')} 5 {t('profile.activity.stars')}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          <Clock className="h-3 w-3 inline mr-1" />
-                           2 {t('profile.activity.daysAgo')}
-                        </p>
-                      </div>
-                    </motion.div>
-                    
-                    <motion.div 
-                      className="flex items-start gap-4 p-4 border rounded-lg"
-                      whileHover={{ x: 5, backgroundColor: 'rgba(var(--primary), 0.05)' }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                    >
-                      <div className={`rounded-full p-2 ${themeClasses.highlight}`}>
-                        <Film className={`h-4 w-4 ${themeClasses.text}`} />
-                      </div>
-                      <div>
-                        <p className="font-medium">{t('profile.activity.watched')} &quot;The Dark Knight&quot;</p>
-                        <p className="text-sm text-muted-foreground">{t('profile.activity.addedToWatchedList')}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          <Clock className="h-3 w-3 inline mr-1" />
-                          5 {t('profile.activity.daysAgo')}
-                        </p>
-                      </div>
-                    </motion.div>
-                    
-                    <motion.div 
-                      className="flex items-start gap-4 p-4 border rounded-lg"
-                      whileHover={{ x: 5, backgroundColor: 'rgba(var(--primary), 0.05)' }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                    >
-                      <div className={`rounded-full p-2 ${themeClasses.highlight}`}>
-                        <MessageSquare className={`h-4 w-4 ${themeClasses.text}`} />
-                      </div>
-                      <div>
-                        <p className="font-medium">{t('profile.activity.reviewed')} &quot;Breaking Bad&quot;</p>
-                        <p className="text-sm text-muted-foreground">{t('profile.activity.addedAReview')}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          <Clock className="h-3 w-3 inline mr-1" />
-                          1 {t('profile.activity.weekAgo')}
-                        </p>
-                      </div>
-                    </motion.div>
-                  </div>
+                  <ActivityFeed userId={user?.id || ''} />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -1067,6 +1028,17 @@ export default function ProfilePage() {
                       </div>
                     </motion.div>
                   </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="watchlist" className="mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t('profile.watchlist.title')}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Watchlist userId={user?.id || ''} />
                 </CardContent>
               </Card>
             </TabsContent>

@@ -123,14 +123,22 @@
     "activity": {
       "recent": "Recent Activity",
       "watched": "watched",
-      "rated": "rated",
+      "ratingAction": "rated",
       "reviewed": "reviewed",
       "daysAgo": "days ago",
       "weekAgo": "week ago",
       "gaveIt": "gave it",
       "stars": "stars",
       "addedToWatchedList": "added to watched list",
-      "addedAReview": "added a review"
+      "addedAReview": "added a review",
+      "ratedMedia": "Rated &ldquo;{{title}}&rdquo; {{rating}} stars",
+      "watchedMedia": "Watched &ldquo;{{title}}&rdquo;",
+      "commentedMedia": "Commented on &ldquo;{{title}}&rdquo;",
+      "statusUpdate": {
+        "watching": "Started watching \"{{title}}\"",
+        "plan_to_watch": "Added \"{{title}}\" to Plan to Watch",
+        "completed": "Completed watching \"{{title}}\""
+      }
     },
     "actions": {
       "changeBanner": "Change Banner",
@@ -148,7 +156,8 @@
       "activity": "Activity",
       "achievements": "Achievements",
       "stats": "Statistics",
-      "settings": "Settings"
+      "settings": "Settings",
+      "watchlist": "My Lists"
     },
     "sections": {
       "basic": "Basic Info",
@@ -171,6 +180,13 @@
       "bannerError": "Failed to upload banner",
       "avatarUpdated": "Avatar updated successfully",
       "bannerUpdated": "Banner updated successfully"
+    },
+    "watchlist": {
+      "title": "My Lists",
+      "watching": "Watching",
+      "planToWatch": "Plan to Watch",
+      "completed": "Completed",
+      "empty": "List is empty"
     }
   },
   "achievements": {
@@ -385,6 +401,12 @@
     "error": {
       "rating": "Failed to save rating",
       "comment": "Failed to add comment"
+    },
+    "status": {
+      "watching": "Watching",
+      "planToWatch": "Plan to Watch",
+      "completed": "Completed",
+      "updated": "Status updated"
     }
   },
   "media": {

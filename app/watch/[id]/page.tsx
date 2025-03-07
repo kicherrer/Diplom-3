@@ -8,55 +8,49 @@ interface MediaGenre {
   };
 }
 
-interface Comment {
-  id: string;
-  content: string;
-  created_at: string;
-  user_id: string;
-  user: {
-    id: string;
-    username: string;
-    avatar_url: string;
-  };
-}
-
 interface Genre {
   id: string;
   name: string;
 }
 
-interface MediaGenreWithGenres {
-  genres: {
-    id: string;
-    name: string;
-    name_ru: string;
-  };
+interface Profile {
+  id: string;
+  username: string;
+  avatar_url: string;
 }
 
-// Добавляем интерфейс для необработанного комментария
-interface RawComment {
+interface DatabaseComment {
   id: string;
   content: string;
   created_at: string;
   user_id: string;
-  profiles: {
-    id: string;
-    username: string;
-    avatar_url: string;
-  };
+  media_id: string;
+  profiles: Profile[];
 }
 
-// Обновляем интерфейс для комментария
-interface CommentWithProfile {
+interface ProcessedComment {
   id: string;
   content: string;
   created_at: string;
   user_id: string;
-  profiles: {
-    id: string;
-    username: string;
-    avatar_url: string;
-  };
+  profile: Profile;
+}
+
+interface MediaItem {
+  title: string;
+  poster_url: string;
+  original_title?: string;
+  description: string;
+  type: string;
+  duration: number;
+  year: number;
+  media_genres: Array<{
+    genres: {
+      id: string;
+      name: string;
+      name_ru: string;
+    };
+  }>;
 }
 
 import { useState, useEffect, useCallback } from 'react'
@@ -70,60 +64,10 @@ import { StarRating } from '@/components/star-rating'
 import { CommentSection } from '@/components/comment-section'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
-import { Clock, Calendar, Users } from 'lucide-react'
+import { Clock, Calendar, Users, Book, CheckCircle, Play } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { useUser } from '@/hooks/use-user'
 import { toast } from 'sonner'
-
-interface Profile {
-  id: string;
-  username: string;
-  avatar_url: string;
-}
-
-interface CommentWithProfile {
-  id: string;
-  content: string;
-  created_at: string;
-  user_id: string;
-  profiles: Profile; // изменено с массива на одиночный объект
-}
-
-interface RawCommentFromDB {
-  id: string;
-  content: string;
-  created_at: string;
-  user_id: string;
-  profiles: {
-    id: string;
-    username: string;
-    avatar_url: string;
-  };
-}
-
-interface ProcessedComment {
-  id: string;
-  content: string;
-  created_at: string;
-  user_id: string;
-  profile: {
-    id: string;
-    username: string;
-    avatar_url: string;
-  };
-}
-
-interface DatabaseComment {
-  id: string;
-  content: string;
-  created_at: string;
-  user_id: string;
-  profiles: {
-    id: string;
-    username: string;
-    avatar_url: string;
-  }[];
-}
 
 export default function WatchPage() {
   const { t, i18n } = useTranslation('common')
@@ -133,6 +77,7 @@ export default function WatchPage() {
   const [loading, setLoading] = useState(true)
   const { user } = useUser()
   const [userRating, setUserRating] = useState<number | null>(null)
+  const [watchStatus, setWatchStatus] = useState<string | null>(null)
 
   const getBunnyVideoUrl = (url: string) => {
     if (!url) return '';
@@ -179,40 +124,37 @@ export default function WatchPage() {
         return
       }
 
-      // Отдельный запрос для комментариев с профилями
-      const { data: comments } = await supabase
+      // Исправленный запрос комментариев
+      const { data: commentsData } = await supabase
         .from('comments')
         .select(`
           id,
           content,
           created_at,
           user_id,
-          media_id
+          media_id,
+          profiles:profiles!inner (
+            id,
+            username,
+            avatar_url
+          )
         `)
         .eq('media_id', id)
         .order('created_at', { ascending: false })
 
-      // Получаем профили пользователей для комментариев
-      const commentsWithProfiles = await Promise.all((comments || []).map(async (comment) => {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('id, username, avatar_url')
-          .eq('id', comment.user_id)
-          .single()
-
-        return {
-          ...comment,
-          profile: profileData
-        }
+      const processedComments = (commentsData || []).map(comment => ({
+        id: comment.id,
+        content: comment.content,
+        created_at: comment.created_at,
+        user_id: comment.user_id,
+        profile: comment.profiles // Используем profiles напрямую
       }))
 
-      // Объединяем все данные
       const fullData = {
         ...mediaData,
-        comments: commentsWithProfiles
+        comments: processedComments
       }
 
-      console.log('Media data loaded:', fullData)
       setMedia(fullData)
     } catch (error) {
       console.error('Error in fetchMediaData:', error)
@@ -228,7 +170,8 @@ export default function WatchPage() {
         return
       }
 
-      const { error } = await supabase
+      // Добавляем рейтинг
+      const { error: ratingError } = await supabase
         .from('ratings')
         .upsert({
           media_id: id,
@@ -238,7 +181,19 @@ export default function WatchPage() {
           onConflict: 'media_id,user_id'
         })
 
-      if (error) throw error
+      if (ratingError) throw ratingError
+
+      // Записываем активность
+      const { error: activityError } = await supabase
+        .from('user_activities')
+        .insert({
+          user_id: user.id,
+          media_id: id,
+          activity_type: 'rating',
+          rating: rating
+        })
+
+      if (activityError) throw activityError
 
       setUserRating(rating)
       toast.success(t('watch.success.rating'))
@@ -248,6 +203,111 @@ export default function WatchPage() {
       toast.error(t('watch.error.rating'))
     }
   }
+
+  // Добавляем функцию для отслеживания просмотра
+  const logWatchActivity = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('user_activities')
+        .insert({
+          user_id: user.id,
+          media_id: id,
+          activity_type: 'watch'
+        })
+
+      if (error) throw error
+    } catch (error) {
+      console.error('Error logging watch activity:', error)
+    }
+  }, [user, id]) // Добавляем зависимости
+
+  const updateWatchStatus = async (newStatus: string) => {
+    if (!user) {
+      toast.error(t('watch.login.required'))
+      return
+    }
+
+    try {
+      // Сначала проверим существующий статус
+      const { data: existingStatus } = await supabase
+        .from('user_media_statuses')
+        .select('id, status')
+        .eq('user_id', user.id)
+        .eq('media_id', id)
+        .single()
+
+      if (existingStatus) {
+        // Если существующий статус такой же, ничего не делаем
+        if (existingStatus.status === newStatus) {
+          return
+        }
+
+        // Обновляем существующий статус
+        const { error: updateError } = await supabase
+          .from('user_media_statuses')
+          .update({
+            status: newStatus,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingStatus.id)
+
+        if (updateError) throw updateError
+      } else {
+        // Создаем новый статус
+        const { error: insertError } = await supabase
+          .from('user_media_statuses')
+          .insert({
+            user_id: user.id,
+            media_id: id,
+            status: newStatus
+          })
+
+        if (insertError) throw insertError
+      }
+
+      setWatchStatus(newStatus)
+      toast.success(t('watch.status.updated'))
+
+      // Добавляем запись об активности
+      await supabase
+        .from('user_activities')
+        .insert({
+          user_id: user.id,
+          media_id: id,
+          activity_type: 'status_update',
+          status: newStatus
+        })
+
+    } catch (error: any) {
+      console.error('Error updating watch status:', error)
+      toast.error(t('watch.error.status'))
+    }
+  }
+
+  // Получаем текущий статус при загрузке
+  const fetchWatchStatus = useCallback(async () => {
+    if (!user) return
+    
+    try {
+      const { data, error } = await supabase
+        .from('user_media_statuses')
+        .select('status')
+        .eq('user_id', user.id)
+        .eq('media_id', id)
+        .maybeSingle()
+
+      if (error) throw error
+      setWatchStatus(data?.status || null)
+    } catch (error) {
+      console.error('Error fetching watch status:', error)
+    }
+  }, [user, id])
+
+  useEffect(() => {
+    fetchWatchStatus()
+  }, [fetchWatchStatus])
 
   useEffect(() => {
     fetchMediaData();
@@ -325,7 +385,7 @@ export default function WatchPage() {
 
               <div className="flex flex-wrap items-center gap-4 text-sm">
                 <Badge variant="secondary">{t(`media.types.${media.type}`)}</Badge>
-                {media.media_genres?.map((mg: MediaGenreWithGenres) => (
+                {media.media_genres?.map((mg: MediaGenre) => (
                   <Badge 
                     key={mg.genres.id} 
                     variant="outline"
@@ -354,6 +414,30 @@ export default function WatchPage() {
                     {genre.name}
                   </Badge>
                 ))}
+              </div>
+
+              <div className="flex gap-2 mt-4">
+                <Button
+                  variant={watchStatus === 'watching' ? 'default' : 'outline'}
+                  onClick={() => updateWatchStatus('watching')}
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  {t('watch.status.watching')}
+                </Button>
+                <Button
+                  variant={watchStatus === 'plan_to_watch' ? 'default' : 'outline'}
+                  onClick={() => updateWatchStatus('plan_to_watch')}
+                >
+                  <Book className="h-4 w-4 mr-2" />
+                  {t('watch.status.planToWatch')}
+                </Button>
+                <Button
+                  variant={watchStatus === 'completed' ? 'default' : 'outline'}
+                  onClick={() => updateWatchStatus('completed')}
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  {t('watch.status.completed')}
+                </Button>
               </div>
             </div>
           </div>
